@@ -74,8 +74,12 @@ def hook_check() -> List[Check]:
 def checks(paths: Paths, config: Config) -> List[Check]:
     results: List[Check] = []
 
+    from .speech.edge import edge_binary
+
     for binary, remedy in REQUIRED_BINARIES.items():
-        found = shutil.which(binary)
+        # Resolve edge-tts exactly as the worker does, or doctor reports OK while
+        # playback quietly falls back to the built-in voice.
+        found = edge_binary() if binary == "edge-tts" else shutil.which(binary)
         results.append(
             Check(name=binary, ok=bool(found), detail=found or "not found", remedy=remedy)
         )

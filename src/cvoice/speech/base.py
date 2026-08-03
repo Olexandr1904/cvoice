@@ -31,11 +31,15 @@ def speak_with_fallback(
     text: str,
     on_error: Optional[Callable[[str, Exception], None]] = None,
     on_success: Optional[Callable[[str], None]] = None,
+    on_unavailable: Optional[Callable[[str], None]] = None,
 ) -> Optional[str]:
     """Try each engine in order. Returns the name of the one that spoke, or None."""
     for engine in engines:
         try:
             if not engine.available():
+                # Silent degradation is the failure mode this whole design exists to avoid.
+                if on_unavailable is not None:
+                    on_unavailable(engine.name)
                 continue
             engine.speak(text)
         except Exception as error:  # noqa: BLE001 - any engine failure is a handover

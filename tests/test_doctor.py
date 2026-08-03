@@ -16,6 +16,10 @@ def _all_present(monkeypatch):
 
 
 def test_missing_binary_is_reported_with_a_remedy(tmp_path, monkeypatch):
+    import cvoice.speech.edge as edge_module
+
+    monkeypatch.setattr(edge_module.sys, "executable", str(tmp_path / "nowhere" / "python"))
+    monkeypatch.setattr(edge_module.shutil, "which", lambda name: None)
     monkeypatch.setattr(doctor_module.shutil, "which", lambda name: None if name == "edge-tts" else "/bin/x")
     monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
 

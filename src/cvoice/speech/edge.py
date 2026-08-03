@@ -9,9 +9,24 @@ from __future__ import annotations
 import hashlib
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+from typing import Optional
 
 from .base import SpeechError
+
+
+def edge_binary() -> Optional[str]:
+    """Locate edge-tts without relying on PATH.
+
+    It is installed inside our own virtual environment, and that directory is not on
+    PATH when hooks or the menu bar run us - so a plain shutil.which() silently reports
+    the neural engine as unavailable and everything falls back to the built-in voice.
+    """
+    local = Path(sys.executable).with_name("edge-tts")
+    if local.exists():
+        return str(local)
+    return shutil.which("edge-tts")
 
 
 class EdgeEngine:
@@ -23,7 +38,7 @@ class EdgeEngine:
         self.cache_dir = Path(cache_dir)
 
     def available(self) -> bool:
-        return shutil.which("edge-tts") is not None
+        return edge_binary() is not None
 
     def _cache_path(self, text: str) -> Path:
         digest = hashlib.md5(f"{text}|{self.voice}|{self.rate}".encode()).hexdigest()
@@ -33,7 +48,7 @@ class EdgeEngine:
         partial = target.with_suffix(".part")
         result = subprocess.run(
             [
-                "edge-tts",
+                edge_binary() or "edge-tts",
                 "--voice", self.voice,
                 f"--rate={self.rate}",
                 "--text", text,

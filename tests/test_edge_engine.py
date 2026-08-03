@@ -18,7 +18,7 @@ class FakeRunner:
 
         result = Result()
         result.stderr = ""
-        if argv[0] == "edge-tts":
+        if "edge-tts" in argv[0]:
             self.synth_calls += 1
             result.returncode = 0 if self.synth_ok else 1
             if self.synth_ok:
@@ -38,6 +38,8 @@ def _engine(tmp_path, voice="uk-UA-PolinaNeural"):
 
 
 def test_available_requires_the_edge_tts_binary(monkeypatch, tmp_path):
+    # Both lookups must miss: beside the interpreter and on PATH.
+    monkeypatch.setattr(edge_module.sys, "executable", str(tmp_path / "nowhere" / "python"))
     monkeypatch.setattr(edge_module.shutil, "which", lambda name: None)
 
     assert _engine(tmp_path).available() is False
@@ -87,3 +89,29 @@ def test_synthesis_failure_raises_and_leaves_no_partial_file(monkeypatch, tmp_pa
         raise AssertionError("expected SpeechError")
 
     assert list((tmp_path / "cache").glob("*")) == []
+
+
+def test_binary_is_found_next_to_the_interpreter_when_path_is_empty(monkeypatch, tmp_path):
+    """Hooks and the menu bar run us with a thin PATH; the venv is never on it."""
+    fake_venv_bin = tmp_path / "venv" / "bin"
+    fake_venv_bin.mkdir(parents=True)
+    (fake_venv_bin / "edge-tts").write_text("#!/bin/sh\n")
+    monkeypatch.setattr(edge_module.sys, "executable", str(fake_venv_bin / "python"))
+    monkeypatch.setattr(edge_module.shutil, "which", lambda name: None)
+
+    assert _engine(tmp_path).available() is True
+    assert edge_module.edge_binary() == str(fake_venv_bin / "edge-tts")
+
+
+def test_falls_back_to_path_when_not_beside_the_interpreter(monkeypatch, tmp_path):
+    monkeypatch.setattr(edge_module.sys, "executable", str(tmp_path / "nowhere" / "python"))
+    monkeypatch.setattr(edge_module.shutil, "which", lambda name: "/usr/local/bin/edge-tts")
+
+    assert edge_module.edge_binary() == "/usr/local/bin/edge-tts"
+
+
+def test_unavailable_when_it_exists_nowhere(monkeypatch, tmp_path):
+    monkeypatch.setattr(edge_module.sys, "executable", str(tmp_path / "nowhere" / "python"))
+    monkeypatch.setattr(edge_module.shutil, "which", lambda name: None)
+
+    assert _engine(tmp_path).available() is False

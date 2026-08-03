@@ -151,6 +151,7 @@ def make_speaker(paths: Paths, engines: List[object], sink: Optional[Callable[[s
             spoken,
             on_error=lambda name, error: health.record(paths, name, str(error)),
             on_success=lambda name: health.clear(paths, component=name),
+            on_unavailable=lambda name: health.record(paths, name, "not installed or not reachable"),
         )
         if used is None:
             health.record(paths, "speech", "every engine failed")

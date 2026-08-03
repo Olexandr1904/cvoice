@@ -67,3 +67,13 @@ def test_success_reports_recovery_for_the_engine_used():
     speak_with_fallback(engines, "hello", on_success=recovered.append)
 
     assert recovered == ["edge"]
+
+
+def test_unavailable_engine_is_reported_not_skipped_silently():
+    """A neural engine that is merely missing must not degrade the voice in silence."""
+    reported = []
+    engines = [FakeEngine("edge", available=False), FakeEngine("say")]
+
+    speak_with_fallback(engines, "hello", on_unavailable=reported.append)
+
+    assert reported == ["edge"]
