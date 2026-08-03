@@ -120,6 +120,17 @@ def build_parser() -> argparse.ArgumentParser:
     speak = sub.add_parser("speak")
     speak.add_argument("text", nargs="+")
 
+    installer = sub.add_parser("install-hooks")
+    installer.add_argument("config_dirs", nargs="+", type=Path)
+    remover = sub.add_parser("remove-hooks")
+    remover.add_argument("config_dirs", nargs="+", type=Path)
+
+    migration = sub.add_parser("migrate")
+    migration.add_argument("--from", dest="old_root", type=Path, default=Path.home() / ".claude-tts")
+
+    language = sub.add_parser("language")
+    language.add_argument("value")
+
     return parser
 
 
@@ -243,6 +254,36 @@ def main(argv: Optional[List[str]] = None) -> int:
         from .menubar.render import render
 
         print(render(paths, config))
+        return 0
+
+    if args.command in ("install-hooks", "remove-hooks"):
+        from .install import install_hooks, remove_hooks
+
+        shim = str(paths.root / "bin" / "cv-hook")
+        for config_dir in args.config_dirs:
+            if args.command == "install-hooks":
+                install_hooks(config_dir, shim=shim)
+            else:
+                remove_hooks(config_dir)
+            print(f"{args.command}: {config_dir}")
+        return 0
+
+    if args.command == "migrate":
+        from .migrate import migrate
+
+        count = migrate(args.old_root, paths)
+        print(f"imported {count} history entries; {args.old_root} was left untouched")
+        return 0
+
+    if args.command == "language":
+        from .i18n import available_languages
+
+        if args.value not in available_languages():
+            print(f"unknown language {args.value!r}; available: {', '.join(available_languages())}", file=sys.stderr)
+            return 1
+        config.language = args.value
+        config_module.save(paths, config)
+        print(args.value)
         return 0
 
     return 2

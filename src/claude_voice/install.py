@@ -1,0 +1,82 @@
+"""Wiring the hooks into Claude Code's settings.json.
+
+Ownership is recognised by the command path rather than an injected marker key, because
+settings.json is validated against a published schema and unknown keys must not appear
+there. That also makes installation naturally idempotent.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import time
+from pathlib import Path
+from typing import Dict, List
+
+SHIM_MARKER = "cv-hook"
+
+# event -> (matcher or None, hook subcommand, extra keys)
+EVENTS: Dict[str, tuple] = {
+    "PreToolUse": ("AskUserQuestion|ExitPlanMode", "question", {"timeout": 10}),
+    "Notification": (None, "notification", {"timeout": 10}),
+    "Stop": (None, "stop", {"async": True, "timeout": 120}),
+    "UserPromptSubmit": (None, "prompt-submit", {"timeout": 10}),
+}
+
+
+def _load(settings: Path) -> dict:
+    try:
+        return json.loads(settings.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save(settings: Path, data: dict) -> None:
+    settings.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+def _backup(settings: Path) -> None:
+    if settings.exists():
+        shutil.copy2(settings, settings.with_suffix(f".json.backup-{time.strftime('%Y%m%d%H%M%S')}"))
+
+
+def _owned(command: str) -> bool:
+    return SHIM_MARKER in command
+
+
+def install_hooks(config_dir: Path, shim: str) -> None:
+    settings = Path(config_dir) / "settings.json"
+    _backup(settings)
+    data = _load(settings)
+    hooks = data.setdefault("hooks", {})
+
+    for event, (matcher, subcommand, extra) in EVENTS.items():
+        groups: List[dict] = hooks.setdefault(event, [])
+        already = any(_owned(hook.get("command", "")) for group in groups for hook in group.get("hooks", []))
+        if already:
+            continue
+        entry = {"type": "command", "command": f"{shim} hook {subcommand}", **extra}
+        target = None
+        for group in groups:
+            if group.get("matcher") == matcher:
+                target = group
+                break
+        if target is None:
+            target = {"hooks": []} if matcher is None else {"matcher": matcher, "hooks": []}
+            groups.append(target)
+        target.setdefault("hooks", []).append(entry)
+
+    _save(settings, data)
+
+
+def remove_hooks(config_dir: Path) -> None:
+    settings = Path(config_dir) / "settings.json"
+    data = _load(settings)
+    hooks = data.get("hooks", {})
+    for event, groups in list(hooks.items()):
+        for group in groups:
+            group["hooks"] = [hook for hook in group.get("hooks", []) if not _owned(hook.get("command", ""))]
+        hooks[event] = [group for group in groups if group.get("hooks")]
+        if not hooks[event]:
+            del hooks[event]
+    _save(settings, data)
