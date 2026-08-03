@@ -159,3 +159,28 @@ def test_unknown_subcommand_returns_non_zero(tmp_path, monkeypatch):
     _home(tmp_path, monkeypatch)
 
     assert cli.main(["nonsense"]) != 0
+
+
+def test_language_adopts_the_packs_voices(tmp_path, monkeypatch):
+    paths = _home(tmp_path, monkeypatch)
+
+    cli.main(["language", "uk"])
+
+    config = load(paths)
+    assert config.language == "uk"
+    assert config.edge_voice == "uk-UA-PolinaNeural"
+    assert config.say_voice == "Lesya"
+
+
+def test_language_keeps_a_voice_the_user_chose(tmp_path, monkeypatch):
+    paths = _home(tmp_path, monkeypatch, edge_voice="en-GB-SoniaNeural")
+
+    cli.main(["language", "uk"])
+
+    assert load(paths).edge_voice == "en-GB-SoniaNeural"
+
+
+def test_unknown_language_is_rejected(tmp_path, monkeypatch):
+    _home(tmp_path, monkeypatch)
+
+    assert cli.main(["language", "kl"]) == 1

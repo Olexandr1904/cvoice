@@ -44,6 +44,13 @@ if [ "$INSTALL_HOOKS" = 1 ]; then
   found=0
   for config_dir in "$HOME"/.claude*; do
     [ -d "$config_dir" ] || continue
+    # A glob on ~/.claude* also catches our own state directory, stray directories and
+    # backups. Only a directory Claude Code itself populated is a real config dir.
+    is_config=0
+    for marker in projects commands .credentials.json; do
+      [ -e "$config_dir/$marker" ] && is_config=1
+    done
+    [ "$is_config" = 1 ] || continue
     "$HOME_DIR/bin/cv-hook" install-hooks "$config_dir"
     found=1
   done

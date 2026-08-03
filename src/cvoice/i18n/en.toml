@@ -13,6 +13,10 @@ No markdown, no file paths, no code, no preamble like "here is the summary".
 Return only the summary sentence. Nothing else.
 """
 
+[voices]
+edge = "en-US-AriaNeural"
+say = "Samantha"
+
 [detect]
 requires = "[A-Za-z]"
 forbids = "[\\u0400-\\u04FF]"

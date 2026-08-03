@@ -281,6 +281,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.value not in available_languages():
             print(f"unknown language {args.value!r}; available: {', '.join(available_languages())}", file=sys.stderr)
             return 1
+        # A language without its voices is useless: an English voice reading Ukrainian
+        # is unintelligible. Adopt the pack's voices unless the user picked their own.
+        from .i18n import load as load_pack
+
+        pack = load_pack(args.value)
+        defaults = config_module.Config()
+        if pack.edge_voice and config.edge_voice in ("", defaults.edge_voice):
+            config.edge_voice = pack.edge_voice
+        if pack.say_voice and config.say_voice in ("", defaults.say_voice):
+            config.say_voice = pack.say_voice
         config.language = args.value
         config_module.save(paths, config)
         print(args.value)

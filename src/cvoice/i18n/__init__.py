@@ -41,6 +41,8 @@ class Pack:
     name: str
     phrases: Dict[str, str]
     summary_prompt: str
+    edge_voice: str = ""
+    say_voice: str = ""
     requires: Optional[str] = None
     forbids: Optional[str] = None
     translit_table: Table = field(default_factory=Table)
@@ -72,11 +74,14 @@ def load(language: str) -> Pack:
         raise LookupError(f"no language pack for {language!r}")
     data = tomllib.loads(path.read_text())
     detect = data.get("detect", {})
+    voices = data.get("voices", {})
     translit = data.get("translit", {})
     return Pack(
         language=data["language"],
         name=data.get("name", data["language"]),
         phrases=data.get("phrases", {}),
+        edge_voice=voices.get("edge", ""),
+        say_voice=voices.get("say", ""),
         summary_prompt=data["summary_prompt"],
         requires=detect.get("requires"),
         forbids=detect.get("forbids"),

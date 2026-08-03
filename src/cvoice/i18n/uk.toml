@@ -17,6 +17,10 @@ summary_prompt = """
 
 # Russian-specific letters disqualify the text outright; latin words of three or more
 # letters do too, because the built-in voice cannot pronounce them.
+[voices]
+edge = "uk-UA-PolinaNeural"
+say = "Lesya"
+
 [detect]
 requires = "[іїєґІЇЄҐ]"
 forbids = "[ыэъёЫЭЪЁ]|[A-Za-z]{3,}"

@@ -74,3 +74,19 @@ def test_ukrainian_pack_carries_a_translit_table():
 
 def test_english_pack_needs_no_translit_table():
     assert load("en").translit_table.empty is True
+
+
+@pytest.mark.parametrize("language", available_languages())
+def test_every_pack_declares_voices_for_both_engines(language):
+    """A language whose voices are not its own would be read by a foreign voice."""
+    pack = load(language)
+
+    assert pack.edge_voice, f"{language} declares no edge voice"
+    assert pack.say_voice, f"{language} declares no say voice"
+
+
+def test_ukrainian_pack_uses_ukrainian_voices():
+    pack = load("uk")
+
+    assert pack.edge_voice.startswith("uk-")
+    assert pack.say_voice == "Lesya"
