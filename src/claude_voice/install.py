@@ -70,13 +70,30 @@ def install_hooks(config_dir: Path, shim: str) -> None:
 
 
 def remove_hooks(config_dir: Path) -> None:
+    """Remove only our own hook entries, and only if there are any.
+
+    This must never write to a settings.json it does not own something in. Uninstalling
+    walks every ~/.claude* directory, most of which belong to unrelated tools or other
+    Claude installations: rewriting them would reformat files we were never asked to
+    touch, and writing to a directory with no settings.json would create one from
+    nothing.
+    """
     settings = Path(config_dir) / "settings.json"
+    if not settings.exists():
+        return
+
     data = _load(settings)
     hooks = data.get("hooks", {})
+    removed = False
     for event, groups in list(hooks.items()):
         for group in groups:
-            group["hooks"] = [hook for hook in group.get("hooks", []) if not _owned(hook.get("command", ""))]
+            kept = [hook for hook in group.get("hooks", []) if not _owned(hook.get("command", ""))]
+            if len(kept) != len(group.get("hooks", [])):
+                removed = True
+            group["hooks"] = kept
         hooks[event] = [group for group in groups if group.get("hooks")]
         if not hooks[event]:
             del hooks[event]
-    _save(settings, data)
+
+    if removed:
+        _save(settings, data)

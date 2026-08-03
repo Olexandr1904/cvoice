@@ -3447,11 +3447,13 @@ def _run(paths, transcript_path, monkeypatch, summary="Summarised."):
 
 
 def test_last_assistant_message_becomes_history(tmp_path, transcript, monkeypatch):
+    """Only the newest assistant message counts. It is short English, so it is used
+    verbatim - the summariser path has its own test below."""
     paths = _prepare(tmp_path)
 
-    _run(paths, transcript("first reply", "final reply"), monkeypatch, summary="Short summary.")
+    _run(paths, transcript("first reply", "final reply"), monkeypatch, summary="unused")
 
-    assert [entry.text for entry in recent(paths)] == ["Short summary."]
+    assert [entry.text for entry in recent(paths)] == ["final reply"]
 
 
 def test_short_reply_in_the_target_language_is_used_verbatim(tmp_path, transcript, monkeypatch):
@@ -4509,7 +4511,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as error:
+        # argparse exits the process on an unknown subcommand. Every other path here
+        # returns a code, so convert this one too rather than raising through callers.
+        return error.code if isinstance(error.code, int) else 2
     if not args.command:
         parser.print_help()
         return 2
@@ -5439,16 +5446,33 @@ def install_hooks(config_dir: Path, shim: str) -> None:
 
 
 def remove_hooks(config_dir: Path) -> None:
+    """Remove only our own hook entries, and only if there are any.
+
+    This must never write to a settings.json it does not own something in. Uninstalling
+    walks every ~/.claude* directory, most of which belong to unrelated tools or other
+    Claude installations: rewriting them would reformat files we were never asked to
+    touch, and writing to a directory with no settings.json would create one from
+    nothing.
+    """
     settings = Path(config_dir) / "settings.json"
+    if not settings.exists():
+        return
+
     data = _load(settings)
     hooks = data.get("hooks", {})
+    removed = False
     for event, groups in list(hooks.items()):
         for group in groups:
-            group["hooks"] = [hook for hook in group.get("hooks", []) if not _owned(hook.get("command", ""))]
+            kept = [hook for hook in group.get("hooks", []) if not _owned(hook.get("command", ""))]
+            if len(kept) != len(group.get("hooks", [])):
+                removed = True
+            group["hooks"] = kept
         hooks[event] = [group for group in groups if group.get("hooks")]
         if not hooks[event]:
             del hooks[event]
-    _save(settings, data)
+
+    if removed:
+        _save(settings, data)
 ```
 
 Then add to `src/claude_voice/cli.py`, inside `build_parser()`:

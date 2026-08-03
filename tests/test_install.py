@@ -123,3 +123,25 @@ def test_missing_settings_file_is_created(tmp_path):
     install_hooks(config_dir, shim="/shim/cv-hook")
 
     assert (config_dir / "settings.json").exists()
+
+
+def test_remove_hooks_never_creates_a_missing_settings_file(tmp_path):
+    """Uninstalling walks every ~/.claude* directory; most contain nothing of ours."""
+    config_dir = tmp_path / ".claude-something-else"
+    config_dir.mkdir()
+
+    remove_hooks(config_dir)
+
+    assert not (config_dir / "settings.json").exists()
+
+
+def test_remove_hooks_leaves_an_unowned_file_byte_identical(tmp_path):
+    config_dir = tmp_path / ".claude"
+    config_dir.mkdir()
+    settings = config_dir / "settings.json"
+    original = '{"model":"opus","hooks":{"Stop":[{"hooks":[{"type":"command","command":"echo hi"}]}]}}'
+    settings.write_text(original)
+
+    remove_hooks(config_dir)
+
+    assert settings.read_text() == original
