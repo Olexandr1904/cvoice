@@ -128,11 +128,13 @@ Everything the prototype already does correctly is a requirement, not a rewrite 
 - Output modes `off | notify | voice | both`, resolved by cascade: project > alias > global,
   most specific explicit value wins.
 - `snooze N` with automatic expiry; an explicit replay overrides both mode and snooze.
-- End-of-turn summary: a reply is read verbatim only when it is under 300 characters, contains
-  no latin word of three or more letters, and passes the language check; anything else goes to
-  the summarizer. The language check is supplied by the i18n pack as two optional character-class
-  patterns, `requires` and `forbids` (Ukrainian, for example, requires `[іїєґ]` and forbids
-  `[ыэъё]`). A pack that declares neither always summarizes, which is the safe default. The reply is embedded **inside** the prompt between
+- End-of-turn summary: a reply is read verbatim only when it is under 300 characters and passes
+  the language check; anything else goes to the summarizer. The language check is supplied
+  entirely by the i18n pack as two optional regexes, `requires` and `forbids` — Ukrainian
+  requires `[іїєґ]` and forbids `[ыэъё]|[A-Za-z]{3,}`, so the "no latin words" rule lives in the
+  pack rather than in the code. That matters because a latin-script language would otherwise
+  never qualify for verbatim reading and would pay for a summary every turn. A pack that
+  declares neither pattern always summarizes, which is the safe default. The reply is embedded **inside** the prompt between
   explicit markers, never piped on stdin — piping makes the model answer the instructions
   instead of summarizing. Recursion is prevented by `CLAUDE_VOICE_CHILD=1`, on which every
   hook exits immediately, and by disabling hooks in the child invocation.
