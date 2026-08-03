@@ -1,7 +1,7 @@
-import claude_voice.hooks.stop as stop_hook
-from claude_voice.config import Config, save
-from claude_voice.history import recent
-from claude_voice.state import Paths
+import cvoice.hooks.stop as stop_hook
+from cvoice.config import Config, save
+from cvoice.history import recent
+from cvoice.state import Paths
 
 
 def _prepare(tmp_path, mode="notify", language="en"):
@@ -14,7 +14,7 @@ def _prepare(tmp_path, mode="notify", language="en"):
 def _run(paths, transcript_path, monkeypatch, summary="Summarised."):
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", "/work/app")
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", "/Users/me/.claude")
-    monkeypatch.delenv("CLAUDE_VOICE_CHILD", raising=False)
+    monkeypatch.delenv("CVOICE_CHILD", raising=False)
     monkeypatch.setattr(stop_hook.summarize, "run", lambda text, pack, **kw: summary)
     stop_hook.handle(
         {"session_id": "s1", "transcript_path": str(transcript_path)},
@@ -102,7 +102,7 @@ def test_missing_transcript_is_survivable(tmp_path, monkeypatch):
 def test_entry_point_detaches_and_returns_immediately(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(stop_hook.common, "detach", lambda name, payload: calls.append(name))
-    monkeypatch.delenv("CLAUDE_VOICE_CHILD", raising=False)
+    monkeypatch.delenv("CVOICE_CHILD", raising=False)
 
     stop_hook.main({"session_id": "s1"}, detached=False)
 
@@ -112,7 +112,7 @@ def test_entry_point_detaches_and_returns_immediately(tmp_path, monkeypatch):
 def test_entry_point_does_nothing_inside_the_summariser_child(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(stop_hook.common, "detach", lambda name, payload: calls.append(name))
-    monkeypatch.setenv("CLAUDE_VOICE_CHILD", "1")
+    monkeypatch.setenv("CVOICE_CHILD", "1")
 
     stop_hook.main({"session_id": "s1"}, detached=False)
 

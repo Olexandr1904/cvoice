@@ -1,5 +1,5 @@
-import claude_voice.notify.macos as notify_module
-from claude_voice.notify.macos import NotifyError, send, terminal_bundle_id
+import cvoice.notify.macos as notify_module
+from cvoice.notify.macos import NotifyError, send, terminal_bundle_id
 
 
 class FakeRun:

@@ -1,5 +1,5 @@
-from claude_voice.config import Config, load, save
-from claude_voice.state import Paths
+from cvoice.config import Config, load, save
+from cvoice.state import Paths
 
 
 def test_defaults_are_neutral(tmp_path):
@@ -59,7 +59,7 @@ def test_unknown_mode_falls_back_to_off(tmp_path):
     assert load(paths).mode == "off"
 
 
-from claude_voice.config import clear_scope, resolve_mode, scope_file, set_scope
+from cvoice.config import clear_scope, resolve_mode, scope_file, set_scope
 
 
 def test_global_default_applies_when_no_scope_set(tmp_path):

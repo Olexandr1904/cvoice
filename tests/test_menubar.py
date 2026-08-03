@@ -1,8 +1,8 @@
-from claude_voice.config import Config
-from claude_voice.health import record
-from claude_voice.history import add
-from claude_voice.menubar.render import render
-from claude_voice.state import Paths, set_snooze
+from cvoice.config import Config
+from cvoice.health import record
+from cvoice.history import add
+from cvoice.menubar.render import render
+from cvoice.state import Paths, set_snooze
 
 
 def _paths(tmp_path):

@@ -1,10 +1,10 @@
 import json
 
-import claude_voice.hooks.common as common
-from claude_voice.config import Config
-from claude_voice.i18n import load as load_pack
-from claude_voice.queue import Item, pending, read_item
-from claude_voice.state import Paths
+import cvoice.hooks.common as common
+from cvoice.config import Config
+from cvoice.i18n import load as load_pack
+from cvoice.queue import Item, pending, read_item
+from cvoice.state import Paths
 
 
 def _context(tmp_path, mode="both", monkeypatch=None):
@@ -22,13 +22,13 @@ def _context(tmp_path, mode="both", monkeypatch=None):
 
 
 def test_is_child_reads_the_env_var(monkeypatch):
-    monkeypatch.setenv("CLAUDE_VOICE_CHILD", "1")
+    monkeypatch.setenv("CVOICE_CHILD", "1")
 
     assert common.is_child() is True
 
 
 def test_is_child_false_without_the_env_var(monkeypatch):
-    monkeypatch.delenv("CLAUDE_VOICE_CHILD", raising=False)
+    monkeypatch.delenv("CVOICE_CHILD", raising=False)
 
     assert common.is_child() is False
 
@@ -64,7 +64,7 @@ def test_emit_records_history(tmp_path):
 
     common.emit(context, kind="tldr", text="All done.", notifier=lambda *a, **k: None, worker=lambda: None)
 
-    from claude_voice.history import recent
+    from cvoice.history import recent
 
     assert [entry.text for entry in recent(context.paths)] == ["All done."]
 
@@ -104,7 +104,7 @@ def test_emit_prefers_the_banner_text_when_given(tmp_path):
 
 
 def test_emit_records_a_notifier_failure_in_health(tmp_path):
-    from claude_voice.health import failures
+    from cvoice.health import failures
 
     context = _context(tmp_path, mode="notify")
 

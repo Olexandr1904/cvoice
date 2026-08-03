@@ -1,8 +1,8 @@
 import threading
 import time
 
-from claude_voice.queue import Item, drain, enqueue, pending
-from claude_voice.state import Paths
+from cvoice.queue import Item, drain, enqueue, pending
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):
@@ -43,7 +43,7 @@ def test_drain_speaks_everything_in_order(tmp_path):
 
 
 def test_drain_returns_zero_when_lock_is_held(tmp_path):
-    from claude_voice.queue import lock
+    from cvoice.queue import lock
 
     paths = _paths(tmp_path)
     enqueue(paths, Item(priority=1, label="app", session="s", text="one"))

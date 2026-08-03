@@ -1,4 +1,4 @@
-from claude_voice.state import Paths
+from cvoice.state import Paths
 
 
 def test_paths_derive_from_root(tmp_path):
@@ -19,22 +19,22 @@ def test_ensure_creates_directories(tmp_path):
     assert paths.state_dir.is_dir()
 
 
-def test_default_root_is_dot_claude_voice(monkeypatch, tmp_path):
+def test_default_root_is_dot_cvoice(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.delenv("CLAUDE_VOICE_HOME", raising=False)
+    monkeypatch.delenv("CVOICE_HOME", raising=False)
 
-    assert Paths.default().root == tmp_path / ".claude-voice"
+    assert Paths.default().root == tmp_path / ".cvoice"
 
 
 def test_env_var_overrides_default_root(monkeypatch, tmp_path):
-    monkeypatch.setenv("CLAUDE_VOICE_HOME", str(tmp_path / "custom"))
+    monkeypatch.setenv("CVOICE_HOME", str(tmp_path / "custom"))
 
     assert Paths.default().root == tmp_path / "custom"
 
 
 import time
 
-from claude_voice.state import clear_snooze, set_snooze, snoozed_until
+from cvoice.state import clear_snooze, set_snooze, snoozed_until
 
 
 def test_no_snooze_by_default(tmp_path):

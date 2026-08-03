@@ -1,4 +1,4 @@
 def test_package_exposes_version():
-    import claude_voice
+    import cvoice
 
-    assert claude_voice.__version__
+    assert cvoice.__version__

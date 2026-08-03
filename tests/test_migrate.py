@@ -1,8 +1,8 @@
 import json
 
-from claude_voice.history import recent
-from claude_voice.migrate import migrate
-from claude_voice.state import Paths
+from cvoice.history import recent
+from cvoice.migrate import migrate
+from cvoice.state import Paths
 
 
 def _old(tmp_path):

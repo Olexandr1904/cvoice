@@ -1,4 +1,4 @@
-from claude_voice.speech.translit import Table, has_latin_words, transliterate
+from cvoice.speech.translit import Table, has_latin_words, transliterate
 
 TABLE = Table(
     terms={

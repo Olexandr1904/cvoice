@@ -1,7 +1,7 @@
-import claude_voice.speech.macos_say as macos_say
-from claude_voice.speech.base import SpeechError
-from claude_voice.speech.macos_say import SayEngine
-from claude_voice.speech.translit import Table
+import cvoice.speech.macos_say as macos_say
+from cvoice.speech.base import SpeechError
+from cvoice.speech.macos_say import SayEngine
+from cvoice.speech.translit import Table
 
 TABLE = Table(terms={"manager": "менеджер"}, digraphs=[], letters={"a": "а", "s": "с", "y": "й", "n": "н", "c": "к"})
 

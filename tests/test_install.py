@@ -1,6 +1,6 @@
 import json
 
-from claude_voice.install import EVENTS, install_hooks, remove_hooks
+from cvoice.install import EVENTS, install_hooks, remove_hooks
 
 
 def _settings(tmp_path, payload):
@@ -13,7 +13,7 @@ def _settings(tmp_path, payload):
 def test_hooks_are_added_for_every_event(tmp_path):
     config_dir = _settings(tmp_path, {})
 
-    install_hooks(config_dir, shim="/home/me/.claude-voice/bin/cv-hook")
+    install_hooks(config_dir, shim="/home/me/.cvoice/bin/cv-hook")
 
     data = json.loads((config_dir / "settings.json").read_text())
     assert set(EVENTS) <= set(data["hooks"])

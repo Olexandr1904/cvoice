@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Bootstrap claude-voice: virtual environment, shim, hooks, menu-bar plugin.
+# Bootstrap cvoice: virtual environment, shim, hooks, menu-bar plugin.
 set -euo pipefail
 
-HOME_DIR="${CLAUDE_VOICE_HOME:-$HOME/.claude-voice}"
+HOME_DIR="${CVOICE_HOME:-$HOME/.cvoice}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LANGUAGE=""
 INSTALL_HOOKS=1
@@ -28,7 +28,7 @@ python3 -m venv "$HOME_DIR/.venv"
 # The hooks in settings.json point at this path forever; upgrading never rewrites them.
 cat > "$HOME_DIR/bin/cv-hook" <<EOF
 #!/usr/bin/env bash
-exec "$HOME_DIR/.venv/bin/claude-voice" "\$@"
+exec "$HOME_DIR/.venv/bin/cvoice" "\$@"
 EOF
 chmod +x "$HOME_DIR/bin/cv-hook"
 
@@ -53,8 +53,8 @@ fi
 if [ "$INSTALL_PLUGIN" = 1 ]; then
   PLUGIN_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
   if [ -n "$PLUGIN_DIR" ] && [ -d "$PLUGIN_DIR" ]; then
-    ln -sf "$HOME_DIR/.venv/lib"/python*/site-packages/claude_voice/menubar/plugin.sh \
-      "$PLUGIN_DIR/claude-voice.10s.sh"
+    ln -sf "$HOME_DIR/.venv/lib"/python*/site-packages/cvoice/menubar/plugin.sh \
+      "$PLUGIN_DIR/cvoice.10s.sh"
     echo "==> Menu-bar plugin linked into $PLUGIN_DIR"
   else
     echo "    SwiftBar not detected; skipping the menu-bar plugin"

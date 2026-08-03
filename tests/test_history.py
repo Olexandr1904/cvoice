@@ -1,5 +1,5 @@
-from claude_voice.history import add, get, recent
-from claude_voice.state import Paths
+from cvoice.history import add, get, recent
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):

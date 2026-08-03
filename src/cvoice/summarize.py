@@ -16,7 +16,7 @@ from typing import Optional
 from .i18n import Pack
 
 MAX_INPUT_CHARS = 6000
-CHILD_ENV_VAR = "CLAUDE_VOICE_CHILD"
+CHILD_ENV_VAR = "CVOICE_CHILD"
 
 
 def strip_markdown(text: str) -> str:

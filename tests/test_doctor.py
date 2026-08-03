@@ -1,8 +1,8 @@
-import claude_voice.doctor as doctor_module
-from claude_voice.config import Config
-from claude_voice.doctor import checks, report
-from claude_voice.health import record
-from claude_voice.state import Paths
+import cvoice.doctor as doctor_module
+from cvoice.config import Config
+from cvoice.doctor import checks, report
+from cvoice.health import record
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):

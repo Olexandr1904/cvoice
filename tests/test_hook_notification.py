@@ -1,10 +1,10 @@
 import time
 
-import claude_voice.hooks.notification as notification_hook
-from claude_voice.config import Config, save
-from claude_voice.history import recent
-from claude_voice.queue import pending, read_item
-from claude_voice.state import Paths
+import cvoice.hooks.notification as notification_hook
+from cvoice.config import Config, save
+from cvoice.history import recent
+from cvoice.queue import pending, read_item
+from cvoice.state import Paths
 
 
 def _paths(tmp_path, mode="both"):
@@ -16,7 +16,7 @@ def _paths(tmp_path, mode="both"):
 
 def _run(paths, message, monkeypatch):
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", "/work/app")
-    monkeypatch.delenv("CLAUDE_VOICE_CHILD", raising=False)
+    monkeypatch.delenv("CVOICE_CHILD", raising=False)
     sent = []
     notification_hook.handle(
         {"session_id": "s", "message": message},

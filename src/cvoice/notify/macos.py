@@ -30,7 +30,7 @@ def terminal_bundle_id() -> Optional[str]:
     return TERMINAL_BUNDLES.get(os.environ.get("TERM_PROGRAM", ""))
 
 
-def send(title: str, body: str, group: str = "claude-voice") -> None:
+def send(title: str, body: str, group: str = "cvoice") -> None:
     if shutil.which("terminal-notifier"):
         argv = ["terminal-notifier", "-title", title, "-message", body, "-group", group]
         bundle = terminal_bundle_id()

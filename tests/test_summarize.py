@@ -1,6 +1,6 @@
-import claude_voice.summarize as summarize_module
-from claude_voice.i18n import load
-from claude_voice.summarize import run
+import cvoice.summarize as summarize_module
+from cvoice.i18n import load
+from cvoice.summarize import run
 
 PACK = load("en")
 
@@ -60,7 +60,7 @@ def test_child_marker_env_var_is_set(monkeypatch):
 
     run("a reply", PACK)
 
-    assert fake.env["CLAUDE_VOICE_CHILD"] == "1"
+    assert fake.env["CVOICE_CHILD"] == "1"
 
 
 def test_haiku_model_is_requested(monkeypatch):

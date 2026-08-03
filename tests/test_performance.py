@@ -8,11 +8,11 @@ BUDGET_SECONDS = 0.6
 def _run_hook(name, payload, env_home):
     start = time.monotonic()
     result = subprocess.run(
-        [sys.executable, "-m", "claude_voice.cli", "hook", name],
+        [sys.executable, "-m", "cvoice.cli", "hook", name],
         input=payload,
         capture_output=True,
         text=True,
-        env={"PATH": "/usr/bin:/bin", "HOME": str(env_home), "CLAUDE_VOICE_HOME": str(env_home)},
+        env={"PATH": "/usr/bin:/bin", "HOME": str(env_home), "CVOICE_HOME": str(env_home)},
     )
     return time.monotonic() - start, result
 
@@ -37,7 +37,7 @@ def test_prompt_submit_hook_prints_nothing(tmp_path):
 def test_heavy_modules_are_not_imported_by_hooks():
     """edge-tts pulls in aiohttp; importing it on every hook would blow the budget."""
     code = (
-        "import sys; import claude_voice.cli as cli; "
+        "import sys; import cvoice.cli as cli; "
         "assert 'edge_tts' not in sys.modules, sorted(m for m in sys.modules if 'edge' in m)"
     )
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)

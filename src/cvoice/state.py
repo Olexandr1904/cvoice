@@ -17,10 +17,10 @@ class Paths:
 
     @classmethod
     def default(cls) -> "Paths":
-        override = os.environ.get("CLAUDE_VOICE_HOME")
+        override = os.environ.get("CVOICE_HOME")
         if override:
             return cls(root=Path(override))
-        return cls(root=Path(os.environ.get("HOME", "~")).expanduser() / ".claude-voice")
+        return cls(root=Path(os.environ.get("HOME", "~")).expanduser() / ".cvoice")
 
     @property
     def config_file(self) -> Path:

@@ -1,6 +1,6 @@
 import pytest
 
-from claude_voice.i18n import REQUIRED_PHRASES, available_languages, load
+from cvoice.i18n import REQUIRED_PHRASES, available_languages, load
 
 
 def test_english_pack_loads():

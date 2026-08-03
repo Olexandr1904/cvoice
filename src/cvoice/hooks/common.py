@@ -110,7 +110,7 @@ def emit(
     if context.mode in ("notify", "both"):
         send = notifier or _default_notifier
         try:
-            send(title=f"{context.label}", body=banner or text, group=f"claude-voice-{context.session}")
+            send(title=f"{context.label}", body=banner or text, group=f"cvoice-{context.session}")
         except Exception as error:  # noqa: BLE001
             health.record(context.paths, "notify", str(error))
 
@@ -164,7 +164,7 @@ def detach(hook_name: str, payload: dict) -> None:
     json.dump(payload, handle)
     handle.close()
     subprocess.Popen(
-        [sys.executable, "-m", "claude_voice.cli", "hook", hook_name, "--payload", handle.name, "--detached"],
+        [sys.executable, "-m", "cvoice.cli", "hook", hook_name, "--payload", handle.name, "--detached"],
         start_new_session=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -173,7 +173,7 @@ def detach(hook_name: str, payload: dict) -> None:
 
 def spawn_worker() -> None:
     subprocess.Popen(
-        [sys.executable, "-m", "claude_voice.cli", "worker"],
+        [sys.executable, "-m", "cvoice.cli", "worker"],
         start_new_session=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

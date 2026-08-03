@@ -1,4 +1,4 @@
-from claude_voice.speech.base import SpeechError, speak_with_fallback
+from cvoice.speech.base import SpeechError, speak_with_fallback
 
 
 class FakeEngine:

@@ -1,9 +1,9 @@
-# claude-voice
+# cvoice
 
 Claude Code tells you when it needs you.
 
 You start a long task, switch to the browser, and then keep checking the terminal to see
-whether it finished or is quietly waiting for an answer. `claude-voice` removes the
+whether it finished or is quietly waiting for an answer. `cvoice` removes the
 checking: a banner when it asks something, a spoken one-line summary when a turn ends, and
 a menu-bar item that keeps everything it said so you can hear it again later.
 
@@ -27,8 +27,8 @@ are read as they are, and cost nothing.
 ## Install
 
 ```bash
-git clone https://github.com/<you>/claude-voice
-cd claude-voice
+git clone https://github.com/<you>/cvoice
+cd cvoice
 ./install.sh
 ```
 
@@ -37,7 +37,7 @@ into every Claude Code config directory it finds — backing up each `settings.j
 Nothing is installed globally.
 
 ```bash
-claude-voice doctor    # checks dependencies, hooks, permissions, Focus state
+cvoice doctor    # checks dependencies, hooks, permissions, Focus state
 ```
 
 ## Modes
@@ -52,9 +52,9 @@ claude-voice doctor    # checks dependencies, hooks, permissions, Focus state
 Modes are set per scope, and the most specific one wins — **project > alias > global**:
 
 ```bash
-claude-voice mode voice                    # everywhere
-claude-voice mode off --scope alias        # only this Claude alias
-claude-voice mode both --scope project     # only this directory
+cvoice mode voice                    # everywhere
+cvoice mode off --scope alias        # only this Claude alias
+cvoice mode both --scope project     # only this directory
 ```
 
 Project settings are stored centrally, never inside your repositories.
@@ -62,20 +62,20 @@ Project settings are stored centrally, never inside your repositories.
 ## Everyday commands
 
 ```bash
-claude-voice status         # what is on right now, and any degraded component
-claude-voice snooze 30      # silence for 30 minutes, expires by itself
-claude-voice resume
-claude-voice history        # everything it has told you, with ids
-claude-voice play <id>      # hear one entry again
-claude-voice replay         # hear the last one again
-claude-voice skip           # skip the current sentence
-claude-voice shut           # stop now and drop the queue
+cvoice status         # what is on right now, and any degraded component
+cvoice snooze 30      # silence for 30 minutes, expires by itself
+cvoice resume
+cvoice history        # everything it has told you, with ids
+cvoice play <id>      # hear one entry again
+cvoice replay         # hear the last one again
+cvoice skip           # skip the current sentence
+cvoice shut           # stop now and drop the queue
 ```
 
 Most people alias it to something short:
 
 ```bash
-alias cv='~/.claude-voice/bin/cv-hook'
+alias cv='~/.cvoice/bin/cv-hook'
 ```
 
 ## Menu bar
@@ -111,7 +111,7 @@ When the network is gone it falls back to the built-in macOS synthesiser — a w
 better than a lost message. Synthesised audio is cached, so replaying anything is instant.
 
 ```toml
-# ~/.claude-voice/config.toml
+# ~/.cvoice/config.toml
 language = "en"
 mode     = "notify"
 engine   = "edge"
@@ -122,7 +122,7 @@ rate  = "+0%"
 ```
 
 English and Ukrainian ship in the box. A language is one TOML file in
-`src/claude_voice/i18n/` holding the spoken phrases, the summarizer prompt, and two regexes
+`src/cvoice/i18n/` holding the spoken phrases, the summarizer prompt, and two regexes
 that decide whether a reply can be read verbatim or has to be translated first. A test
 asserts every pack carries every key, so a language cannot ship half-translated.
 

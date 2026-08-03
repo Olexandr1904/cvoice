@@ -1,5 +1,5 @@
-from claude_voice.queue import Item, enqueue, pending, read_item
-from claude_voice.state import Paths
+from cvoice.queue import Item, enqueue, pending, read_item
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):
@@ -63,7 +63,7 @@ def test_partial_files_are_ignored(tmp_path):
 
 import os
 
-from claude_voice.queue import lock
+from cvoice.queue import lock
 
 
 def test_lock_is_acquired_when_free(tmp_path):

@@ -1,4 +1,4 @@
-# claude-voice — design
+# cvoice — design
 
 Date: 2026-08-03
 Status: approved, ready for planning
@@ -51,14 +51,14 @@ virtual environment itself. The user still runs one command.
 ## 5. Repository layout
 
 ```
-claude-voice/
+cvoice/
   install.sh                  bootstrap: venv, package, hooks, menu-bar plugin
   uninstall.sh                remove hooks by marker; leave user data
   pyproject.toml              package metadata, console entry point
   LICENSE                     MIT
   README.md                   what it is, install, configuration, screenshots
-  src/claude_voice/
-    cli.py                    single entry point: claude-voice <subcommand>
+  src/cvoice/
+    cli.py                    single entry point: cvoice <subcommand>
     config.py                 layered configuration and scope cascade
     state.py                  paths, snooze, seen marker, lock location
     queue.py                  speech queue and machine-wide lock
@@ -78,12 +78,12 @@ claude-voice/
       prompt_submit.py        drop this session's pending speech
     i18n/
       en.toml  uk.toml        static phrases and the summarizer prompt
-    menubar/plugin.sh         SwiftBar plugin; calls `claude-voice menubar`
+    menubar/plugin.sh         SwiftBar plugin; calls `cvoice menubar`
   tests/                      pytest
   docs/
 ```
 
-Runtime data stays outside the repository, in `~/.claude-voice/`: `config.toml`, `queue/`,
+Runtime data stays outside the repository, in `~/.cvoice/`: `config.toml`, `queue/`,
 `lock/`, `cache/`, `history.jsonl`, `health.json`, `scopes/`. The repository never contains
 user data.
 
@@ -108,7 +108,7 @@ rest take their paths as arguments so tests can point them at `tmp_path`.
 `settings.json` hook entries must reference a path that never changes:
 
 ```
-~/.claude-voice/bin/cv-hook stop
+~/.cvoice/bin/cv-hook stop
 ```
 
 `cv-hook` is three lines of bash: resolve the virtual environment, then `exec` the Python
@@ -136,7 +136,7 @@ Everything the prototype already does correctly is a requirement, not a rewrite 
   never qualify for verbatim reading and would pay for a summary every turn. A pack that
   declares neither pattern always summarizes, which is the safe default. The reply is embedded **inside** the prompt between
   explicit markers, never piped on stdin — piping makes the model answer the instructions
-  instead of summarizing. Recursion is prevented by `CLAUDE_VOICE_CHILD=1`, on which every
+  instead of summarizing. Recursion is prevented by `CVOICE_CHILD=1`, on which every
   hook exits immediately, and by disabling hooks in the child invocation.
 - Hooks return control immediately; the summarizer runs detached.
 - History stores summaries and questions but not idle "waiting for input" nudges, and
@@ -148,9 +148,9 @@ Everything the prototype already does correctly is a requirement, not a rewrite 
 ## 8. Data flow — end of turn
 
 ```
-Claude Code --(JSON on stdin)--> ~/.claude-voice/bin/cv-hook stop
-  -> claude_voice.hooks.stop
-       guard CLAUDE_VOICE_CHILD  -> exit 0
+Claude Code --(JSON on stdin)--> ~/.cvoice/bin/cv-hook stop
+  -> cvoice.hooks.stop
+       guard CVOICE_CHILD  -> exit 0
        mode == off               -> exit 0
        spawn detached child, return immediately
      [child]
@@ -178,7 +178,7 @@ summarizer fails    -> generic phrase from the i18n pack; the message is still d
 When `health.json` is non-empty, the menu-bar icon becomes ⚠️ and the menu shows the
 component, the reason and the time, plus a **Run doctor** item.
 
-`claude-voice doctor` checks, and prints pass/fail with a remedy for each:
+`cvoice doctor` checks, and prints pass/fail with a remedy for each:
 
 1. Dependencies present and runnable: the virtual environment, `edge-tts`, `terminal-notifier`,
    the `claude` CLI. (`jq` is no longer a dependency — JSON is parsed in Python.)
@@ -193,7 +193,7 @@ but suppressed by Do Not Disturb, which looks identical to the feature being bro
 
 ## 10. Configuration and i18n
 
-`~/.claude-voice/config.toml`:
+`~/.cvoice/config.toml`:
 
 ```toml
 language     = "en"          # speech language; selects the i18n pack
@@ -207,7 +207,7 @@ voice = "Samantha"
 rate  = 180
 ```
 
-Scope overrides live in `~/.claude-voice/scopes/` — one file per project path or alias —
+Scope overrides live in `~/.cvoice/scopes/` — one file per project path or alias —
 so project-level settings never touch the user's repositories.
 
 i18n packs hold both the static phrases (`question.single`, `question.many`,
@@ -240,18 +240,18 @@ CI: GitHub Actions on `macos-latest`, running `pytest` on every push and pull re
 
 `install.sh`:
 
-1. Create `~/.claude-voice/` and a virtual environment inside it.
+1. Create `~/.cvoice/` and a virtual environment inside it.
 2. `pip install` the package into that environment.
-3. Write `~/.claude-voice/bin/cv-hook`.
+3. Write `~/.cvoice/bin/cv-hook`.
 4. Detect every `~/.claude*` config directory, back up each `settings.json`, and add hook
-   entries. Ownership is recognised by the command path containing `.claude-voice/bin/cv-hook`
+   entries. Ownership is recognised by the command path containing `.cvoice/bin/cv-hook`
    rather than by an injected marker key, because `settings.json` is validated against a
    published schema and unknown keys must not be introduced. Installation is idempotent: an
    entry whose command already points at the shim is left alone.
 5. Optionally symlink the SwiftBar plugin.
 6. Ask for the speech language and write the initial `config.toml`.
 
-`claude-voice migrate` imports history and settings from an existing `~/.claude-tts` and
+`cvoice migrate` imports history and settings from an existing `~/.claude-tts` and
 leaves that directory untouched, so the old installation remains a working fallback.
 
 `uninstall.sh` removes only the marked hook entries and leaves user data in place.

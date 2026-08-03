@@ -1,7 +1,7 @@
-import claude_voice.hooks.question as question_hook
-from claude_voice.config import Config, save
-from claude_voice.history import recent
-from claude_voice.state import Paths
+import cvoice.hooks.question as question_hook
+from cvoice.config import Config, save
+from cvoice.history import recent
+from cvoice.state import Paths
 
 
 def _paths(tmp_path, language="en", mode="both"):
@@ -13,7 +13,7 @@ def _paths(tmp_path, language="en", mode="both"):
 
 def _run(paths, payload, monkeypatch):
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", "/work/app")
-    monkeypatch.delenv("CLAUDE_VOICE_CHILD", raising=False)
+    monkeypatch.delenv("CVOICE_CHILD", raising=False)
     sent = []
     question_hook.handle(payload, paths=paths, notifier=lambda **kw: sent.append(kw), worker=lambda: None)
     return sent
@@ -80,7 +80,7 @@ def test_several_questions_are_counted_in_the_banner(tmp_path, monkeypatch):
 
 
 def test_questions_are_queued_at_high_priority(tmp_path, monkeypatch):
-    from claude_voice.queue import pending, read_item
+    from cvoice.queue import pending, read_item
 
     paths = _paths(tmp_path, mode="voice")
     payload = {"session_id": "s", "tool_name": "ExitPlanMode", "tool_input": {}}

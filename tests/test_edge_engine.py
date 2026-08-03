@@ -1,6 +1,6 @@
-import claude_voice.speech.edge as edge_module
-from claude_voice.speech.base import SpeechError
-from claude_voice.speech.edge import EdgeEngine
+import cvoice.speech.edge as edge_module
+from cvoice.speech.base import SpeechError
+from cvoice.speech.edge import EdgeEngine
 
 
 class FakeRunner:

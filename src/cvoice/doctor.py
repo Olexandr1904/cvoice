@@ -31,7 +31,7 @@ class Check:
 
 
 REQUIRED_BINARIES = {
-    "edge-tts": "pip install edge-tts (inside ~/.claude-voice/.venv)",
+    "edge-tts": "pip install edge-tts (inside ~/.cvoice/.venv)",
     "terminal-notifier": "brew install terminal-notifier",
     "say": "part of macOS; this tool is macOS only",
     "afplay": "part of macOS; this tool is macOS only",
@@ -64,7 +64,7 @@ def hook_check() -> List[Check]:
             Check(
                 name=f"hooks in {config_dir.name}",
                 ok=installed,
-                detail="installed" if installed else "no claude-voice hooks found",
+                detail="installed" if installed else "no cvoice hooks found",
                 remedy="run ./install.sh again",
             )
         )
@@ -86,7 +86,7 @@ def checks(paths: Paths, config: Config) -> List[Check]:
             name="recent failures",
             ok=not failures,
             detail="; ".join(f"{item.component}: {item.error}" for item in failures) or "none",
-            remedy="fix the component above, then run: claude-voice doctor",
+            remedy="fix the component above, then run: cvoice doctor",
         )
     )
 

@@ -1,5 +1,5 @@
-from claude_voice.health import clear, failures, record
-from claude_voice.state import Paths
+from cvoice.health import clear, failures, record
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):

@@ -2,7 +2,7 @@
 # Remove the hooks and the installation. User data is kept unless --purge is given.
 set -euo pipefail
 
-HOME_DIR="${CLAUDE_VOICE_HOME:-$HOME/.claude-voice}"
+HOME_DIR="${CVOICE_HOME:-$HOME/.cvoice}"
 PURGE=0
 REMOVE_HOOKS=1
 
@@ -15,7 +15,7 @@ while [ $# -gt 0 ]; do
 done
 
 # Hooks always live under the real Claude config directories, never under
-# CLAUDE_VOICE_HOME, so this loop touches $HOME even when CLAUDE_VOICE_HOME points
+# CVOICE_HOME, so this loop touches $HOME even when CVOICE_HOME points
 # elsewhere (e.g. during a sandboxed test run). --no-hooks is the escape hatch,
 # mirroring install.sh, for runs that must not touch real settings.json files.
 if [ "$REMOVE_HOOKS" = 1 ]; then
@@ -26,7 +26,7 @@ if [ "$REMOVE_HOOKS" = 1 ]; then
 fi
 
 PLUGIN_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
-[ -n "$PLUGIN_DIR" ] && rm -f "$PLUGIN_DIR/claude-voice.10s.sh"
+[ -n "$PLUGIN_DIR" ] && rm -f "$PLUGIN_DIR/cvoice.10s.sh"
 
 rm -rf "$HOME_DIR/.venv" "$HOME_DIR/bin"
 if [ "$PURGE" = 1 ]; then

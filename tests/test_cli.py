@@ -1,12 +1,12 @@
-import claude_voice.cli as cli
-from claude_voice.config import Config, load, save
-from claude_voice.history import add
-from claude_voice.queue import Item, enqueue, pending, read_item
-from claude_voice.state import Paths, snoozed_until
+import cvoice.cli as cli
+from cvoice.config import Config, load, save
+from cvoice.history import add
+from cvoice.queue import Item, enqueue, pending, read_item
+from cvoice.state import Paths, snoozed_until
 
 
 def _home(tmp_path, monkeypatch, **config_kwargs):
-    monkeypatch.setenv("CLAUDE_VOICE_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("CVOICE_HOME", str(tmp_path / "home"))
     paths = Paths.default()
     paths.ensure()
     save(paths, Config(**config_kwargs) if config_kwargs else Config())
@@ -33,7 +33,7 @@ def test_mode_with_project_scope_writes_a_scope_file(tmp_path, monkeypatch):
 
     cli.main(["mode", "voice", "--scope", "project", "--project", "/work/app"])
 
-    from claude_voice.config import resolve_mode
+    from cvoice.config import resolve_mode
 
     assert resolve_mode(paths, "/work/app", ".claude", default_mode="off") == "voice"
 
@@ -44,7 +44,7 @@ def test_auto_clears_a_scope(tmp_path, monkeypatch):
 
     cli.main(["auto", "--scope", "project", "--project", "/work/app"])
 
-    from claude_voice.config import resolve_mode
+    from cvoice.config import resolve_mode
 
     assert resolve_mode(paths, "/work/app", ".claude", default_mode="off") == "off"
 

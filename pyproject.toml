@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-voice"
+name = "cvoice"
 version = "0.1.0"
 description = "Spoken and banner reporting for Claude Code on macOS"
 readme = "README.md"
@@ -19,13 +19,13 @@ dependencies = [
 dev = ["pytest>=7.4"]
 
 [project.scripts]
-claude-voice = "claude_voice.cli:main"
+cvoice = "cvoice.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-claude_voice = ["i18n/*.toml", "menubar/*.sh"]
+cvoice = ["i18n/*.toml", "menubar/*.sh"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

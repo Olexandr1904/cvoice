@@ -82,7 +82,7 @@ def _mark_seen(paths: Paths) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="claude-voice")
+    parser = argparse.ArgumentParser(prog="cvoice")
     sub = parser.add_subparsers(dest="command")
 
     hook = sub.add_parser("hook")

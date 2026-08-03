@@ -1,6 +1,6 @@
-import claude_voice.hooks.prompt_submit as prompt_hook
-from claude_voice.queue import Item, enqueue, pending, read_item
-from claude_voice.state import Paths
+import cvoice.hooks.prompt_submit as prompt_hook
+from cvoice.queue import Item, enqueue, pending, read_item
+from cvoice.state import Paths
 
 
 def _paths(tmp_path):
