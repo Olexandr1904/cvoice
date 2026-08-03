@@ -9,6 +9,8 @@ a menu-bar item that keeps everything it said so you can hear it again later.
 
 **macOS only.** It builds on `say`, `afplay`, `terminal-notifier` and SwiftBar.
 
+<img src="docs/menu.png" alt="The cvoice menu: unread counter, mode switch, and a replayable history" width="620">
+
 ---
 
 ## What it does
@@ -80,24 +82,9 @@ alias cv='~/.cvoice/bin/cv-hook'
 
 ## Menu bar
 
-The SwiftBar plugin shows the current mode, an unread counter, and the text of the last
-message — clicking any history entry speaks it again.
-
-```
-🔔 2
-────────────────────────────
-Refactored the sync layer, all 142 tests pass.
-Mark as read (2)
-────────────────────────────
-Pause  →  15 / 30 / 60 minutes
-Mode   →  ○ off  ● notify  ○ voice  ○ both
-────────────────────────────
-History
-  + 13:42  Refactored the sync layer, all 142…
-  ? 13:31  Which cache layer should we use?
-────────────────────────────
-Replay last · Skip · Silence now
-```
+The SwiftBar plugin (shown above) carries the current mode, an unread counter, and the text
+of the last message. Clicking any history entry speaks it again, and the mode can be changed
+per project without leaving the menu.
 
 The counter matters more than it looks: macOS Focus suppresses banners entirely — they are
 delivered, they just never appear — and Focus is usually on exactly when you are in a call.
