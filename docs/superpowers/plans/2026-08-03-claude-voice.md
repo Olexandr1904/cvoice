@@ -1171,7 +1171,13 @@ def _try_mkdir(paths: Paths) -> bool:
         paths.lock_dir.mkdir(parents=True)
     except FileExistsError:
         return False
-    (paths.lock_dir / "pid").write_text(str(os.getpid()))
+    # Write the pid via temp file + atomic rename. A plain write_text() truncates
+    # first, and that window is exactly what a competing process misreads as "no
+    # owner recorded" - see the note on lock() below.
+    pid_file = paths.lock_dir / "pid"
+    tmp = pid_file.with_suffix(".tmp")
+    tmp.write_text(str(os.getpid()))
+    tmp.rename(pid_file)
     return True
 
 
@@ -1181,14 +1187,21 @@ def lock(paths: Paths) -> Iterator[bool]:
 
     Yields True when this process owns the lock. A directory left behind by a crashed
     worker is reclaimed by checking the pid recorded inside it.
+
+    The unreadable-pid case must NOT be treated as stale. Creating the directory and
+    recording the pid cannot be one atomic step, so a competitor can find the directory
+    present but the pid not yet landed. Reading that as "owner is dead" lets it delete
+    the directory the real owner is holding and re-create it, and then two processes
+    both believe they hold the lock. Only an explicitly recorded pid that fails the
+    liveness check may trigger a reclaim.
     """
     acquired = _try_mkdir(paths)
     if not acquired:
         try:
             owner = int((paths.lock_dir / "pid").read_text().strip())
         except (FileNotFoundError, ValueError):
-            owner = 0
-        if not _process_alive(owner):
+            owner = None  # mid-acquisition, not dead
+        if owner is not None and not _process_alive(owner):
             _remove_lock(paths)
             acquired = _try_mkdir(paths)
     try:
@@ -1782,7 +1795,15 @@ git commit -m "feat: engine protocol and fallback chain"
 from claude_voice.speech.translit import Table, has_latin_words, transliterate
 
 TABLE = Table(
-    terms={"pull request": "пул реквест", "manager": "менеджер", "login": "логін", "api": "апі"},
+    # "sync" must be listed: phonetically "Sync" becomes "сйнк" (y -> й), which is why the
+    # production pack in Task 16 spells common terms out instead of relying on the fallback.
+    terms={
+        "pull request": "пул реквест",
+        "manager": "менеджер",
+        "login": "логін",
+        "api": "апі",
+        "sync": "синк",
+    },
     digraphs=[("sh", "ш"), ("ch", "ч"), ("ck", "к")],
     letters={
         "a": "а", "b": "б", "c": "к", "d": "д", "e": "е", "f": "ф", "g": "ґ", "h": "г",
