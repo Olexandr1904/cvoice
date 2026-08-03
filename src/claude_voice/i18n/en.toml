@@ -1,0 +1,30 @@
+language = "en"
+name = "English"
+
+summary_prompt = """
+This is an assistant's final reply in a terminal. Tell the user the outcome in one or two
+short conversational sentences, at most 200 characters: what was done and what matters next.
+No markdown, no file paths, no code, no preamble like "here is the summary".
+
+===== BEGIN REPLY =====
+{text}
+===== END REPLY =====
+
+Return only the summary sentence. Nothing else.
+"""
+
+[detect]
+requires = "[A-Za-z]"
+forbids = "[\\u0400-\\u04FF]"
+
+[phrases]
+"question.single" = "I have a question for you."
+"question.with_text" = "I have a question. {question}"
+"question.many" = "I have a few questions, check the terminal."
+"plan.ready" = "The plan is ready, take a look."
+"permission.tool" = "I need permission to use {tool}."
+"permission.generic" = "I need your permission, check the terminal."
+"waiting" = "Waiting for your answer."
+"summary.fallback" = "The turn is done, the details are in the terminal."
+"voice.enabled" = "Voice output is on."
+"test.phrase" = "Connection check. This is the {voice} voice."

@@ -1,0 +1,122 @@
+language = "uk"
+name = "Ukrainian"
+
+summary_prompt = """
+Це фінальна відповідь асистента в терміналі. Скажи користувачеві підсумок одним-двома
+короткими реченнями розмовною українською, максимум 200 символів: що зроблено і що важливо
+знати далі. Пиши виключно українською кирилицею, навіть якщо текст нижче іншою мовою.
+Англійські терміни транслітеруй так, як їх вимовляють уголос. Без markdown, без шляхів до
+файлів, без коду, без вступів.
+
+===== ПОЧАТОК ВІДПОВІДІ =====
+{text}
+===== КІНЕЦЬ ВІДПОВІДІ =====
+
+Поверни лише одну фразу-підсумок. Нічого більше.
+"""
+
+# Russian-specific letters disqualify the text outright; latin words of three or more
+# letters do too, because the built-in voice cannot pronounce them.
+[detect]
+requires = "[іїєґІЇЄҐ]"
+forbids = "[ыэъёЫЭЪЁ]|[A-Za-z]{3,}"
+
+[phrases]
+"question.single" = "У мене питання, глянь у термінал."
+"question.with_text" = "У мене питання. {question}"
+"question.many" = "У мене кілька питань, глянь у термінал."
+"plan.ready" = "План готовий, глянь і скажи, йдемо чи ні."
+"permission.tool" = "Потрібен дозвіл на {tool}."
+"permission.generic" = "Потрібен твій дозвіл, глянь у термінал."
+"waiting" = "Чекаю на твою відповідь."
+"summary.fallback" = "Хід завершено, підсумок у терміналі."
+"voice.enabled" = "Голос увімкнено."
+"test.phrase" = "Перевірка звʼязку. Це голос {voice}."
+
+[translit]
+digraphs = [
+    ["sch", "ш"], ["tch", "ч"], ["ch", "ч"], ["sh", "ш"], ["th", "з"], ["ph", "ф"],
+    ["ck", "к"], ["qu", "кв"], ["ee", "і"], ["oo", "у"], ["ou", "ау"], ["ea", "і"],
+    ["ai", "ей"], ["ay", "ей"], ["ey", "ей"], ["oa", "оу"], ["ie", "і"], ["ng", "нг"],
+    ["wh", "в"], ["kn", "н"],
+]
+
+[translit.terms]
+"pull request" = "пул реквест"
+"merge request" = "мердж реквест"
+"code review" = "код ревʼю"
+commit = "коміт"
+branch = "бранч"
+build = "білд"
+release = "реліз"
+deploy = "деплой"
+test = "тест"
+tests = "тести"
+lint = "лінт"
+linter = "лінтер"
+config = "конфіг"
+cache = "кеш"
+retry = "ретрай"
+crash = "креш"
+fix = "фікс"
+hook = "хук"
+queue = "черга"
+log = "лог"
+api = "апі"
+url = "юар-ел"
+json = "джейсон"
+npm = "ен-пі-ем"
+gradle = "ґредл"
+kotlin = "котлін"
+python = "пайтон"
+docker = "докер"
+github = "ґітхаб"
+gitlab = "ґітлаб"
+git = "ґіт"
+claude = "клод"
+prompt = "промпт"
+agent = "агент"
+model = "модель"
+settings = "налаштування"
+login = "логін"
+start = "старт"
+class = "клас"
+scope = "скоуп"
+parser = "парсер"
+manager = "менеджер"
+handler = "хендлер"
+service = "сервіс"
+client = "клієнт"
+server = "сервер"
+request = "реквест"
+response = "респонс"
+unit = "юніт"
+sync = "синк"
+
+[translit.letters]
+a = "а"
+b = "б"
+c = "к"
+d = "д"
+e = "е"
+f = "ф"
+g = "ґ"
+h = "г"
+i = "і"
+j = "дж"
+k = "к"
+l = "л"
+m = "м"
+n = "н"
+o = "о"
+p = "п"
+q = "к"
+r = "р"
+s = "с"
+t = "т"
+u = "у"
+v = "в"
+w = "в"
+x = "кс"
+y = "й"
+z = "з"
