@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 README = Path(__file__).resolve().parents[1] / "README.md"
 
 
@@ -20,6 +18,5 @@ def test_readme_documents_every_mode():
         assert f"`{mode}`" in text
 
 
-@pytest.mark.xfail(reason="LICENSE pending: copyright holder undecided")
 def test_licence_exists():
     assert (README.parent / "LICENSE").exists()
