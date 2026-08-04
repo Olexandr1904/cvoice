@@ -17,6 +17,11 @@ from typing import List, Optional
 from .state import Paths
 
 
+# Last-resort guard: nothing this long should ever reach the speakers, whatever put
+# it in the queue.
+HARD_CAP = 700
+
+
 @dataclass
 class Item:
     priority: int  # 0 = needs attention now, 1 = end-of-turn summary
@@ -34,7 +39,9 @@ def enqueue(paths: Paths, item: Item) -> Optional[Path]:
     name = f"{item.priority}-{time.time():016.5f}-{os.getpid()}.json"
     target = paths.queue_dir / name
     partial = target.with_suffix(".json.part")
-    partial.write_text(json.dumps(asdict(item), ensure_ascii=False))
+    payload = asdict(item)
+    payload["text"] = item.text.strip()[:HARD_CAP]
+    partial.write_text(json.dumps(payload, ensure_ascii=False))
     partial.rename(target)
     return target
 

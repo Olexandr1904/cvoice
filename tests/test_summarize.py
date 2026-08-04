@@ -178,3 +178,47 @@ def test_the_model_is_configurable(monkeypatch):
 
     argv = fake.calls[0]
     assert argv[argv.index("--model") + 1] == "sonnet"
+
+
+def test_condense_keeps_at_most_three_sentences():
+    from cvoice.summarize import condense
+
+    text = "One. Two. Three. Four. Five."
+
+    assert condense(text) == "One. Two. Three."
+
+
+def test_condense_truncates_a_single_runaway_sentence():
+    from cvoice.summarize import condense
+
+    out = condense("word " * 200)
+
+    assert len(out) <= 321
+    assert out.endswith("…")
+
+
+def test_condense_collapses_whitespace():
+    from cvoice.summarize import condense
+
+    assert condense("  Done.\n\n  Tests pass.  ") == "Done. Tests pass."
+
+
+def test_condense_leaves_a_short_summary_alone():
+    from cvoice.summarize import condense
+
+    assert condense("Done, all tests pass.") == "Done, all tests pass."
+
+
+def test_a_runaway_answer_is_cut_before_it_is_spoken(monkeypatch):
+    """One real answer came back at 1248 characters - ninety seconds of speech."""
+    monkeypatch.setattr(summarize_module.subprocess, "run", FakeRun(stdout="Sentence. " * 200))
+
+    answer = run("a reply", PACK)
+
+    assert len(answer) <= 321
+
+
+def test_condense_does_not_break_file_names():
+    from cvoice.summarize import condense
+
+    assert condense("Done: fixed parser.py and bumped to 1.2.3.") == "Done: fixed parser.py and bumped to 1.2.3."

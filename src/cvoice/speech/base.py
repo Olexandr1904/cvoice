@@ -14,6 +14,10 @@ class SpeechError(Exception):
     """Raised by an engine that could not speak this text."""
 
 
+class SpeechInterrupted(SpeechError):
+    """The user stopped playback. Not a failure, and never a reason to try again."""
+
+
 class Engine:
     """Structural protocol. Implementations need `name`, `available()` and `speak()`."""
 
@@ -42,6 +46,10 @@ def speak_with_fallback(
                     on_unavailable(engine.name)
                 continue
             engine.speak(text)
+        except SpeechInterrupted:
+            # Silencing playback must not look like a broken engine, or the fallback
+            # chain cheerfully repeats the very sentence the user just cut off.
+            return None
         except Exception as error:  # noqa: BLE001 - any engine failure is a handover
             if on_error is not None:
                 on_error(engine.name, error)

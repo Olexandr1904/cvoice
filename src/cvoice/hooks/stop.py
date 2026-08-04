@@ -99,7 +99,7 @@ def handle(
     if len(clean) < MIN_SUMMARIZE or (
         len(clean) <= VERBATIM_LIMIT and context.pack.matches_language(clean)
     ):
-        spoken = clean
+        spoken = summarize.condense(clean)
     else:
         spoken = summarize.run(clean, context.pack, model=context.config.model) or context.pack.phrase("summary.fallback")
 

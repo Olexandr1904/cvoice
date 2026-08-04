@@ -24,6 +24,10 @@ mkdir -p "$HOME_DIR/bin"
 python3 -m venv "$HOME_DIR/.venv"
 "$HOME_DIR/.venv/bin/pip" install --quiet --upgrade pip
 "$HOME_DIR/.venv/bin/pip" install --quiet "$SOURCE_DIR"
+# Re-running the installer must actually replace the code. The version number does
+# not change between edits, so without this pip can decide the requirement is
+# already satisfied and leave the old copy in place - fixes then look like no-ops.
+"$HOME_DIR/.venv/bin/pip" install --quiet --no-deps --force-reinstall "$SOURCE_DIR"
 
 # The hooks in settings.json point at this path forever; upgrading never rewrites them.
 cat > "$HOME_DIR/bin/cv-hook" <<EOF

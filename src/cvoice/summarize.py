@@ -18,6 +18,14 @@ from typing import Optional
 from .i18n import Pack
 
 MAX_INPUT_CHARS = 6000
+# Asking a model for "at most 200 characters" is a request, not a guarantee - one reply
+# came back at 1248 characters, which is a minute and a half of speech. The limit has to
+# live in the code.
+SPOKEN_MAX_SENTENCES = 3
+SPOKEN_MAX_CHARS = 320
+
+# A boundary is punctuation followed by space or end - never the dot in "parser.py".
+_SENTENCE_END = re.compile(r"[.!?\u2026]+(?=\s|$)")
 CHILD_ENV_VAR = "CVOICE_CHILD"
 
 
@@ -28,6 +36,33 @@ def strip_markdown(text: str) -> str:
     text = re.sub(r"https?://\S+", " ", text)
     text = re.sub(r"[#*_>|~]", "", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def condense(
+    text: str,
+    max_sentences: int = SPOKEN_MAX_SENTENCES,
+    max_chars: int = SPOKEN_MAX_CHARS,
+) -> str:
+    """Trim anything on its way to the speakers down to a couple of sentences.
+
+    The original string is sliced rather than rebuilt from pieces, so file names and
+    version numbers survive intact.
+    """
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+
+    ends = [match.end() for match in _SENTENCE_END.finditer(text)]
+    if len(ends) >= max_sentences:
+        text = text[: ends[max_sentences - 1]]
+
+    if len(text) > max_chars:
+        fitting = [end for end in ends if end <= max_chars]
+        if fitting:
+            text = text[: fitting[-1]]
+        else:
+            text = text[:max_chars].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
+    return text
 
 
 def run(text: str, pack: Pack, model: str = "haiku", timeout: int = 120) -> Optional[str]:
@@ -75,5 +110,5 @@ def run(text: str, pack: Pack, model: str = "haiku", timeout: int = 120) -> Opti
 
     if result.returncode != 0:
         return None
-    answer = strip_markdown(result.stdout or "")
+    answer = condense(strip_markdown(result.stdout or ""))
     return answer or None

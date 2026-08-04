@@ -77,3 +77,33 @@ def test_unavailable_engine_is_reported_not_skipped_silently():
     speak_with_fallback(engines, "hello", on_unavailable=reported.append)
 
     assert reported == ["edge"]
+
+
+def test_interruption_does_not_fall_through_to_the_next_engine():
+    """Pressing "silence now" kills afplay; that must not be read as a broken engine."""
+    from cvoice.speech.base import SpeechInterrupted
+
+    class Interrupted(FakeEngine):
+        def speak(self, text):
+            raise SpeechInterrupted("playback stopped")
+
+    second = FakeEngine("say")
+
+    used = speak_with_fallback([Interrupted("edge"), second], "hello")
+
+    assert used is None
+    assert second.spoken == []
+
+
+def test_interruption_is_not_recorded_as_a_failure():
+    from cvoice.speech.base import SpeechInterrupted
+
+    class Interrupted(FakeEngine):
+        def speak(self, text):
+            raise SpeechInterrupted("playback stopped")
+
+    reported = []
+
+    speak_with_fallback([Interrupted("edge")], "hello", on_error=lambda n, e: reported.append(n))
+
+    assert reported == []

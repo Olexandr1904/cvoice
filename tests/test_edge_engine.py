@@ -115,3 +115,23 @@ def test_unavailable_when_it_exists_nowhere(monkeypatch, tmp_path):
     monkeypatch.setattr(edge_module.shutil, "which", lambda name: None)
 
     assert _engine(tmp_path).available() is False
+
+
+def test_killed_playback_raises_interrupted_not_failure(monkeypatch, tmp_path):
+    from cvoice.speech.base import SpeechInterrupted
+
+    class KilledPlayer(FakeRunner):
+        def __call__(self, argv, **kwargs):
+            result = super().__call__(argv, **kwargs)
+            if "afplay" in argv[0]:
+                result.returncode = -15  # SIGTERM, as pkill sends
+            return result
+
+    monkeypatch.setattr(edge_module.subprocess, "run", KilledPlayer())
+
+    try:
+        _engine(tmp_path).speak("Готово")
+    except SpeechInterrupted:
+        pass
+    else:
+        raise AssertionError("expected SpeechInterrupted")

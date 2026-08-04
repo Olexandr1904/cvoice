@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from .base import SpeechError
+from .base import SpeechError, SpeechInterrupted
 
 
 def edge_binary() -> Optional[str]:
@@ -68,5 +68,7 @@ class EdgeEngine:
         if not audio.exists() or audio.stat().st_size == 0:
             self._synthesise(text, audio)
         result = subprocess.run(["afplay", str(audio)], capture_output=True, text=True)
+        if result.returncode < 0:
+            raise SpeechInterrupted("playback stopped")
         if result.returncode != 0:
             raise SpeechError(result.stderr.strip() or f"afplay exited {result.returncode}")

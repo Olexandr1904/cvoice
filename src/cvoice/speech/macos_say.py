@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from typing import Optional
 
-from .base import SpeechError
+from .base import SpeechError, SpeechInterrupted
 from .translit import Table, has_latin_words, transliterate
 
 
@@ -31,5 +31,7 @@ class SayEngine:
             capture_output=True,
             text=True,
         )
+        if result.returncode < 0:
+            raise SpeechInterrupted("playback stopped")
         if result.returncode != 0:
             raise SpeechError(result.stderr.strip() or f"say exited {result.returncode}")
