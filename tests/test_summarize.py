@@ -72,14 +72,14 @@ def test_child_marker_env_var_is_set(monkeypatch):
     assert fake.env["CVOICE_CHILD"] == "1"
 
 
-def test_haiku_model_is_requested(monkeypatch):
+def test_the_default_model_is_requested(monkeypatch):
     fake = FakeRun()
     monkeypatch.setattr(summarize_module.subprocess, "run", fake)
 
     run("a reply", PACK)
 
     argv = fake.calls[0]
-    assert argv[argv.index("--model") + 1] == "haiku"
+    assert argv[argv.index("--model") + 1] == "sonnet"
 
 
 def test_long_reply_is_truncated_before_sending(monkeypatch):
@@ -174,10 +174,10 @@ def test_the_model_is_configurable(monkeypatch):
     fake = FakeRun()
     monkeypatch.setattr(summarize_module.subprocess, "run", fake)
 
-    run("a reply", PACK, model="sonnet")
+    run("a reply", PACK, model="haiku")
 
     argv = fake.calls[0]
-    assert argv[argv.index("--model") + 1] == "sonnet"
+    assert argv[argv.index("--model") + 1] == "haiku"
 
 
 def test_condense_keeps_at_most_three_sentences():
@@ -222,3 +222,21 @@ def test_condense_does_not_break_file_names():
     from cvoice.summarize import condense
 
     assert condense("Done: fixed parser.py and bumped to 1.2.3.") == "Done: fixed parser.py and bumped to 1.2.3."
+
+
+def test_a_clarifying_question_is_rejected(monkeypatch):
+    """Haiku sometimes answers conversationally instead of condensing; the caller's
+    fixed phrase is better than reading its confusion aloud."""
+    monkeypatch.setattr(
+        summarize_module.subprocess,
+        "run",
+        FakeRun(stdout="Вибачте, я не розумію, що вам потрібно зробити?"),
+    )
+
+    assert run("a reply", PACK) is None
+
+
+def test_a_plain_summary_is_kept(monkeypatch):
+    monkeypatch.setattr(summarize_module.subprocess, "run", FakeRun(stdout="Done, tests pass."))
+
+    assert run("a reply", PACK) == "Done, tests pass."

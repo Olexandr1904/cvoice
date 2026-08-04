@@ -51,8 +51,12 @@ wires the hooks into every Claude Code config directory it finds, backing up eac
 | You start typing again | Whatever it still wanted to say is dropped |
 
 It does not read the reply out loud. A forty-line answer full of code and file paths is
-unlistenable, so a cheap model condenses it first. Short replies already in your language
-are read as they are, and cost nothing.
+unlistenable, so a second, cheap Claude call condenses it first. Short replies already in
+your language are read as they are, and cost nothing.
+
+The condensing runs on Sonnet by default. Haiku is cheaper on paper, but measured on the
+same inputs it was three times slower and regularly drifted into answering the text instead
+of summarising it. Set `model = "haiku"` in the config if you would rather have that.
 
 ## Modes
 

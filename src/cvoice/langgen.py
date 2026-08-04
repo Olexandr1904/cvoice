@@ -119,7 +119,7 @@ def voices_for(code: str) -> Tuple[str, str]:
     return edge_voice_for(code), say_voice_for(code)
 
 
-def build(language: str, model: str = "haiku") -> Optional[Dict]:
+def build(language: str, model: str = "sonnet") -> Optional[Dict]:
     """Assemble a pack for `language`. Returns None only if the code cannot be found."""
     english = load("en")
     answer = _ask_model(language, model) or {}

@@ -65,7 +65,7 @@ def condense(
     return text
 
 
-def run(text: str, pack: Pack, model: str = "haiku", timeout: int = 120) -> Optional[str]:
+def run(text: str, pack: Pack, model: str = "sonnet", timeout: int = 120) -> Optional[str]:
     """Condense a reply into one or two spoken sentences.
 
     Three details are load-bearing, each learned the hard way:
@@ -111,4 +111,9 @@ def run(text: str, pack: Pack, model: str = "haiku", timeout: int = 120) -> Opti
     if result.returncode != 0:
         return None
     answer = condense(strip_markdown(result.stdout or ""))
+    if "?" in answer:
+        # A summary never asks anything. When the model starts a conversation instead
+        # of condensing ("Sorry, I am not sure what you need"), the caller's fixed
+        # phrase is a better thing to say out loud than the model's confusion.
+        return None
     return answer or None

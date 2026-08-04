@@ -22,7 +22,7 @@ class Config:
     language: str = "en"
     mode: str = "notify"
     engine: str = "edge"
-    model: str = "haiku"
+    model: str = "sonnet"
     edge_voice: str = "en-US-AriaNeural"
     edge_rate: str = "+0%"
     say_voice: str = "Samantha"
