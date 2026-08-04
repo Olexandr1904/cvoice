@@ -45,10 +45,16 @@ def _owned(command: str) -> bool:
 
 
 def install_hooks(config_dir: Path, shim: str) -> None:
+    """Add our hooks, and touch nothing if they are already there.
+
+    The backup is taken only when something is actually going to change: installing is
+    idempotent, and a copy of settings.json on every run just litters the user's config
+    directory.
+    """
     settings = Path(config_dir) / "settings.json"
-    _backup(settings)
     data = _load(settings)
     hooks = data.setdefault("hooks", {})
+    added = False
 
     for event, (matcher, subcommand, extra) in EVENTS.items():
         groups: List[dict] = hooks.setdefault(event, [])
@@ -65,7 +71,11 @@ def install_hooks(config_dir: Path, shim: str) -> None:
             target = {"hooks": []} if matcher is None else {"matcher": matcher, "hooks": []}
             groups.append(target)
         target.setdefault("hooks", []).append(entry)
+        added = True
 
+    if not added and settings.exists():
+        return
+    _backup(settings)
     _save(settings, data)
 
 

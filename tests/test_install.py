@@ -145,3 +145,23 @@ def test_remove_hooks_leaves_an_unowned_file_byte_identical(tmp_path):
     remove_hooks(config_dir)
 
     assert settings.read_text() == original
+
+
+def test_a_second_run_leaves_no_extra_backup(tmp_path):
+    """Installing twice is normal; a copy of settings.json each time is litter."""
+    config_dir = _settings(tmp_path, {"model": "opus"})
+
+    install_hooks(config_dir, shim="/shim/cv-hook")
+    install_hooks(config_dir, shim="/shim/cv-hook")
+
+    assert len(list(config_dir.glob("settings.json.backup-*"))) == 1
+
+
+def test_a_second_run_leaves_the_file_byte_identical(tmp_path):
+    config_dir = _settings(tmp_path, {"model": "opus"})
+    install_hooks(config_dir, shim="/shim/cv-hook")
+    after_first = (config_dir / "settings.json").read_text()
+
+    install_hooks(config_dir, shim="/shim/cv-hook")
+
+    assert (config_dir / "settings.json").read_text() == after_first
