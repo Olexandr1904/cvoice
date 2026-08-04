@@ -17,9 +17,10 @@ Paste this into Claude Code and let it do the work:
 
 ```
 Install cvoice from https://github.com/Olexandr1904/cvoice on this Mac: clone it into
-~/Documents, run ./install.sh, and answer the language question it asks. Then run
-~/.cvoice/bin/cv-hook doctor and fix anything it reports. Finish by telling me the one
-alias to add to my shell.
+~/Documents. Ask me which language it should speak and wait for my answer - the installer's
+own question needs a terminal, so pass my answer as ./install.sh --language <answer>.
+Then run ~/.cvoice/bin/cv-hook doctor: a Focus warning is expected and not a fault, fix
+anything else. Finish by telling me the one alias to add to my shell.
 ```
 
 Or by hand:

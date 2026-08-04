@@ -36,6 +36,15 @@ exec "$HOME_DIR/.venv/bin/cvoice" "\$@"
 EOF
 chmod +x "$HOME_DIR/bin/cv-hook"
 
+if [ -z "$LANGUAGE" ] && [ ! -t 0 ]; then
+  # Nobody is there to answer: an agent or a pipe is running this. Say so out loud
+  # rather than silently reading an empty line and picking a language for them.
+  echo
+  echo "Not running interactively, so the language question is skipped."
+  echo "Defaulting to English. Re-run with --language <name> to choose another."
+  LANGUAGE="en"
+fi
+
 if [ -z "$LANGUAGE" ]; then
   echo
   echo "Which language should it speak?"
