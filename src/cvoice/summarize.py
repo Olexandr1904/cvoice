@@ -21,6 +21,11 @@ MAX_INPUT_CHARS = 6000
 # Asking a model for "at most 200 characters" is a request, not a guarantee - one reply
 # came back at 1248 characters, which is a minute and a half of speech. The limit has to
 # live in the code.
+NO_SUMMARY = "NO_SUMMARY"
+"""What the model must answer when the text does not say what happened.
+
+The underscore does not survive strip_markdown, so both spellings are accepted."""
+
 SPOKEN_MAX_SENTENCES = 3
 SPOKEN_MAX_CHARS = 320
 
@@ -111,9 +116,10 @@ def run(text: str, pack: Pack, model: str = "sonnet", timeout: int = 120) -> Opt
     if result.returncode != 0:
         return None
     answer = condense(strip_markdown(result.stdout or ""))
-    if "?" in answer:
-        # A summary never asks anything. When the model starts a conversation instead
-        # of condensing ("Sorry, I am not sure what you need"), the caller's fixed
-        # phrase is a better thing to say out loud than the model's confusion.
+    first = (answer.split() or [""])[0].upper().strip(".,:;")
+    if first in {NO_SUMMARY, NO_SUMMARY.replace("_", "")}:
+        # The model is told to say this rather than start a conversation when it cannot
+        # tell what happened. A question mark on its own is fine: a reply that asks the
+        # person to approve something should be voiced as exactly that.
         return None
     return answer or None

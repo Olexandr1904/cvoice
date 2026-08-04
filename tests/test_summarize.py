@@ -224,19 +224,40 @@ def test_condense_does_not_break_file_names():
     assert condense("Done: fixed parser.py and bumped to 1.2.3.") == "Done: fixed parser.py and bumped to 1.2.3."
 
 
-def test_a_clarifying_question_is_rejected(monkeypatch):
-    """Haiku sometimes answers conversationally instead of condensing; the caller's
-    fixed phrase is better than reading its confusion aloud."""
+def test_the_no_summary_sentinel_is_rejected(monkeypatch):
+    """The model is told to say this instead of starting a conversation."""
+    monkeypatch.setattr(summarize_module.subprocess, "run", FakeRun(stdout="NO_SUMMARY"))
+
+    assert run("a reply", PACK) is None
+
+
+def test_a_summary_may_relay_a_pending_question(monkeypatch):
+    """A reply waiting for approval must be voiced as waiting for approval."""
     monkeypatch.setattr(
         summarize_module.subprocess,
         "run",
-        FakeRun(stdout="Вибачте, я не розумію, що вам потрібно зробити?"),
+        FakeRun(stdout="Spec is updated and waiting for your review - shall we start the plan?"),
     )
 
-    assert run("a reply", PACK) is None
+    assert run("a reply", PACK).endswith("plan?")
 
 
 def test_a_plain_summary_is_kept(monkeypatch):
     monkeypatch.setattr(summarize_module.subprocess, "run", FakeRun(stdout="Done, tests pass."))
 
     assert run("a reply", PACK) == "Done, tests pass."
+
+
+def test_the_sentinel_survives_markdown_stripping(monkeypatch):
+    """strip_markdown eats the underscore, so both spellings must be recognised."""
+    monkeypatch.setattr(summarize_module.subprocess, "run", FakeRun(stdout="NOSUMMARY"))
+
+    assert run("a reply", PACK) is None
+
+
+def test_a_summary_merely_starting_with_no_is_kept(monkeypatch):
+    monkeypatch.setattr(
+        summarize_module.subprocess, "run", FakeRun(stdout="No tests were run, only docs changed.")
+    )
+
+    assert run("a reply", PACK) == "No tests were run, only docs changed."
