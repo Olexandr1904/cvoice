@@ -36,8 +36,11 @@ def test_every_pack_has_every_required_phrase(language):
 
 
 @pytest.mark.parametrize("language", available_languages())
-def test_every_pack_prompt_has_a_text_placeholder(language):
-    assert "{text}" in load(language).summary_prompt
+def test_every_pack_system_prompt_states_the_reply_is_data(language):
+    """The reply must be framed as data, or the model answers it instead of condensing it."""
+    system = load(language).summary_system.lower()
+
+    assert "data" in system and "never an instruction" in system
 
 
 def test_english_accepts_english_and_rejects_cyrillic():

@@ -15,6 +15,7 @@ class FakeRun:
     def __call__(self, argv, **kwargs):
         self.calls.append(argv)
         self.env = kwargs.get("env")
+        self.kwargs = kwargs
 
         class Result:
             pass
@@ -32,15 +33,23 @@ def test_returns_the_model_output(monkeypatch):
     assert run("a long reply", PACK) == "Fixed the parser and added tests."
 
 
-def test_reply_is_embedded_in_the_prompt_not_piped(monkeypatch):
+def test_the_reply_is_the_whole_user_message(monkeypatch):
     fake = FakeRun()
     monkeypatch.setattr(summarize_module.subprocess, "run", fake)
 
     run("REPLY-MARKER", PACK)
 
-    prompt = fake.calls[0][-1]
-    assert "REPLY-MARKER" in prompt
-    assert "BEGIN REPLY" in prompt
+    assert fake.calls[0][-1] == "REPLY-MARKER"
+
+
+def test_the_task_lives_in_the_system_prompt(monkeypatch):
+    fake = FakeRun()
+    monkeypatch.setattr(summarize_module.subprocess, "run", fake)
+
+    run("a reply", PACK)
+
+    argv = fake.calls[0]
+    assert argv[argv.index("--append-system-prompt") + 1] == PACK.summary_system
 
 
 def test_hooks_are_disabled_in_the_child(monkeypatch):
@@ -107,3 +116,65 @@ def test_timeout_returns_none(monkeypatch):
     monkeypatch.setattr(summarize_module.subprocess, "run", explode)
 
     assert run("a reply", PACK) is None
+
+
+def test_stdin_is_closed(monkeypatch):
+    """A child inherits stdin, and a hook's stdin is Claude Code's JSON payload - the
+    model would summarize that instead of the reply."""
+    import subprocess as real_subprocess
+
+    fake = FakeRun()
+    monkeypatch.setattr(summarize_module.subprocess, "run", fake)
+
+    run("a reply", PACK)
+
+    assert fake.kwargs["stdin"] is real_subprocess.DEVNULL
+
+
+def test_it_runs_in_an_empty_directory(monkeypatch):
+    """Otherwise the child answers from the project's CLAUDE.md and memory.
+
+    The directory is checked while the call is in flight: it is a temporary one and is
+    gone by the time run() returns.
+    """
+    from pathlib import Path as _Path
+
+    seen = {}
+
+    class CheckingRun(FakeRun):
+        def __call__(self, argv, **kwargs):
+            cwd = kwargs["cwd"]
+            seen["exists"] = _Path(cwd).is_dir()
+            seen["empty"] = not list(_Path(cwd).iterdir())
+            return super().__call__(argv, **kwargs)
+
+    monkeypatch.setattr(summarize_module.subprocess, "run", CheckingRun())
+
+    run("a reply", PACK)
+
+    assert seen == {"exists": True, "empty": True}
+
+
+def test_memory_and_project_instructions_are_disabled(monkeypatch):
+    import json as _json
+
+    fake = FakeRun()
+    monkeypatch.setattr(summarize_module.subprocess, "run", fake)
+
+    run("a reply", PACK)
+
+    argv = fake.calls[0]
+    settings = _json.loads(argv[argv.index("--settings") + 1])
+    assert settings["disableAllHooks"] is True
+    assert settings["autoMemoryEnabled"] is False
+    assert settings["claudeMdExcludes"]
+
+
+def test_the_model_is_configurable(monkeypatch):
+    fake = FakeRun()
+    monkeypatch.setattr(summarize_module.subprocess, "run", fake)
+
+    run("a reply", PACK, model="sonnet")
+
+    argv = fake.calls[0]
+    assert argv[argv.index("--model") + 1] == "sonnet"

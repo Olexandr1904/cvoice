@@ -40,7 +40,7 @@ class Pack:
     language: str
     name: str
     phrases: Dict[str, str]
-    summary_prompt: str
+    summary_system: str
     edge_voice: str = ""
     say_voice: str = ""
     requires: Optional[str] = None
@@ -82,7 +82,7 @@ def load(language: str) -> Pack:
         phrases=data.get("phrases", {}),
         edge_voice=voices.get("edge", ""),
         say_voice=voices.get("say", ""),
-        summary_prompt=data["summary_prompt"],
+        summary_system=data["summary_system"],
         requires=detect.get("requires"),
         forbids=detect.get("forbids"),
         translit_table=Table(

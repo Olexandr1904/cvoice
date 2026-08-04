@@ -101,7 +101,7 @@ def handle(
     ):
         spoken = clean
     else:
-        spoken = summarize.run(clean, context.pack) or context.pack.phrase("summary.fallback")
+        spoken = summarize.run(clean, context.pack, model=context.config.model) or context.pack.phrase("summary.fallback")
 
     common.emit(context, kind="tldr", text=spoken, priority=1, notifier=notifier, worker=worker)
 

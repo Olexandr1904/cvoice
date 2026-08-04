@@ -22,6 +22,7 @@ class Config:
     language: str = "en"
     mode: str = "notify"
     engine: str = "edge"
+    model: str = "haiku"
     edge_voice: str = "en-US-AriaNeural"
     edge_rate: str = "+0%"
     say_voice: str = "Samantha"
@@ -45,6 +46,7 @@ def load(paths: Paths) -> Config:
         language=data.get("language", defaults.language),
         mode=normalise_mode(data.get("mode", defaults.mode)),
         engine=data.get("engine", defaults.engine),
+        model=data.get("model", defaults.model),
         edge_voice=edge.get("voice", defaults.edge_voice),
         edge_rate=edge.get("rate", defaults.edge_rate),
         say_voice=say.get("voice", defaults.say_voice),
@@ -57,6 +59,7 @@ def save(paths: Paths, config: Config) -> None:
         "language": config.language,
         "mode": config.mode,
         "engine": config.engine,
+        "model": config.model,
         "edge": {"voice": config.edge_voice, "rate": config.edge_rate},
         "say": {"voice": config.say_voice, "rate": config.say_rate},
     }
