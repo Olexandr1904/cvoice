@@ -64,7 +64,7 @@ if [ -z "$LANGUAGE" ]; then
     *)    echo "    not an option, using English"; LANGUAGE="en" ;;
   esac
 fi
-if ! "$HOME_DIR/bin/cv-hook" language "$LANGUAGE"; then
+if ! "$HOME_DIR/bin/cv-hook" language "$LANGUAGE" >/dev/null; then
   echo "    could not set up $LANGUAGE, falling back to English"
   "$HOME_DIR/bin/cv-hook" language en >/dev/null
 fi

@@ -85,3 +85,23 @@ def test_report_returns_one_when_a_check_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
 
     assert report(_paths(tmp_path), Config()) == 1
+
+
+def test_focus_is_advisory_and_does_not_fail_the_run(tmp_path, monkeypatch, capsys):
+    """Do Not Disturb is a state of the machine. A first run must not look broken."""
+    _all_present(monkeypatch)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    monkeypatch.setattr(doctor_module, "focus_active", lambda: True)
+
+    code = report(_paths(tmp_path), Config())
+
+    assert code == 0
+    assert "WARN" in capsys.readouterr().out
+
+
+def test_a_real_fault_still_fails_the_run(tmp_path, monkeypatch):
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda name: None)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    monkeypatch.setattr(doctor_module, "focus_active", lambda: False)
+
+    assert report(_paths(tmp_path), Config()) == 1

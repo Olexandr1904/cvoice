@@ -28,6 +28,10 @@ class Check:
     ok: bool
     detail: str = ""
     remedy: str = ""
+    advisory: bool = False
+    """A condition of the machine rather than a fault of ours: reported, but it must not
+    make the whole check fail. Focus being on is the case this exists for - a first run
+    that exits non-zero reads as a broken install."""
 
 
 REQUIRED_BINARIES = {
@@ -117,6 +121,7 @@ def checks(paths: Paths, config: Config) -> List[Check]:
             ok=not suppressed,
             detail="Do Not Disturb is on: banners are delivered but not shown" if suppressed else "off",
             remedy="allow time-sensitive notifications for terminal-notifier, or rely on the menu bar",
+            advisory=True,
         )
     )
 
@@ -127,9 +132,9 @@ def checks(paths: Paths, config: Config) -> List[Check]:
 def report(paths: Paths, config: Config) -> int:
     results = checks(paths, config)
     for check in results:
-        mark = "OK  " if check.ok else "FAIL"
+        mark = "OK  " if check.ok else ("WARN" if check.advisory else "FAIL")
         line = f"[{mark}] {check.name}: {check.detail}"
         if not check.ok and check.remedy:
             line += f"\n         -> {check.remedy}"
         print(line)
-    return 0 if all(check.ok for check in results) else 1
+    return 0 if all(check.ok or check.advisory for check in results) else 1
