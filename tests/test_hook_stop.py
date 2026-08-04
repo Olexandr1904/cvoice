@@ -117,3 +117,65 @@ def test_entry_point_does_nothing_inside_the_summariser_child(tmp_path, monkeypa
     stop_hook.main({"session_id": "s1"}, detached=False)
 
     assert calls == []
+
+
+def _transcript_with_tools(tmp_path, reply, used_tools):
+    """A transcript shaped like Claude Code's: one content block per record."""
+    import json as _json
+
+    path = tmp_path / "tools.jsonl"
+    records = [{"type": "user", "message": {"role": "user", "content": "do it"}}]
+    if used_tools:
+        records += [
+            {"type": "assistant", "isSidechain": False,
+             "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {}}]}},
+            {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "ok"}]}},
+        ]
+    records.append(
+        {"type": "assistant", "isSidechain": False,
+         "message": {"role": "assistant", "content": [{"type": "text", "text": reply}]}}
+    )
+    path.write_text("\n".join(_json.dumps(r) for r in records) + "\n")
+    return path
+
+
+def test_a_greeting_turn_is_not_announced(tmp_path, monkeypatch):
+    """Opening a session and being greeted is not something worth reporting."""
+    paths = _prepare(tmp_path)
+    path = _transcript_with_tools(tmp_path, "Hi! What would you like to work on?", used_tools=False)
+
+    _run(paths, path, monkeypatch, summary="should never be used")
+
+    assert recent(paths) == []
+
+
+def test_a_short_reply_after_real_work_is_announced(tmp_path, monkeypatch):
+    paths = _prepare(tmp_path)
+    path = _transcript_with_tools(tmp_path, "Done, all tests pass.", used_tools=True)
+
+    _run(paths, path, monkeypatch, summary="unused")
+
+    assert [entry.text for entry in recent(paths)] == ["Done, all tests pass."]
+
+
+def test_a_substantial_reply_without_tools_is_still_announced(tmp_path, monkeypatch):
+    paths = _prepare(tmp_path)
+    reply = (
+        "There are two ways to do this and the trade-off is latency against accuracy, "
+        "so I would start with the simpler one and measure before adding the cache."
+    )
+    path = _transcript_with_tools(tmp_path, reply, used_tools=False)
+
+    _run(paths, path, monkeypatch, summary="Summarised.")
+
+    assert recent(paths) != []
+
+
+def test_very_short_text_never_reaches_the_summariser(tmp_path, monkeypatch):
+    """With almost no input the model answers the instructions instead of summarising."""
+    paths = _prepare(tmp_path, language="uk")
+    path = _transcript_with_tools(tmp_path, "Done.", used_tools=True)
+
+    _run(paths, path, monkeypatch, summary="I understand, I will write short summaries.")
+
+    assert [entry.text for entry in recent(paths)] == ["Done."]

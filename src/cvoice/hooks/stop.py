@@ -16,6 +16,12 @@ from ..state import Paths
 from . import common
 
 VERBATIM_LIMIT = 300
+# Below this, asking a model to summarize gives it almost nothing to work with and it
+# answers the instructions instead ("Understood, I'll write one-line summaries").
+MIN_SUMMARIZE = 40
+# A turn that used no tools and said little did nothing worth announcing: greetings,
+# "waiting for your task", acknowledgements.
+MIN_CHATTER = 120
 
 
 def last_assistant_text(transcript_path: Path) -> str:
@@ -39,6 +45,35 @@ def last_assistant_text(transcript_path: Path) -> str:
     return ""
 
 
+def turn_used_tools(transcript_path: Path) -> bool:
+    """Did the assistant actually do something since the last real user prompt?
+
+    Tool results come back as `user` records holding `tool_result` blocks, so walking
+    backwards stops only at a genuine prompt from the person.
+    """
+    try:
+        lines = transcript_path.read_text().splitlines()
+    except (FileNotFoundError, OSError):
+        return False
+
+    for line in reversed(lines):
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if record.get("isSidechain"):
+            continue
+        blocks = record.get("message", {}).get("content")
+        blocks = blocks if isinstance(blocks, list) else []
+        if record.get("type") == "user":
+            if not blocks or any(block.get("type") != "tool_result" for block in blocks):
+                return False
+        elif record.get("type") == "assistant":
+            if any(block.get("type") == "tool_use" for block in blocks):
+                return True
+    return False
+
+
 def handle(
     payload: dict,
     paths: Optional[Paths] = None,
@@ -58,7 +93,12 @@ def handle(
     if not clean:
         return
 
-    if len(clean) <= VERBATIM_LIMIT and context.pack.matches_language(clean):
+    if not turn_used_tools(Path(transcript)) and len(clean) < MIN_CHATTER:
+        return
+
+    if len(clean) < MIN_SUMMARIZE or (
+        len(clean) <= VERBATIM_LIMIT and context.pack.matches_language(clean)
+    ):
         spoken = clean
     else:
         spoken = summarize.run(clean, context.pack) or context.pack.phrase("summary.fallback")
