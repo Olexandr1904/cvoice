@@ -93,3 +93,17 @@ def test_ukrainian_pack_uses_ukrainian_voices():
 
     assert pack.edge_voice.startswith("uk-")
     assert pack.say_voice == "Lesya"
+
+
+def test_ukrainian_question_with_a_latin_term_is_still_speakable():
+    """A question mentioning an API is worth saying in full - only summaries are strict."""
+    pack = load("uk")
+
+    assert pack.matches_script("Який підхід беремо для API?") is True
+    assert pack.matches_language("Який підхід беремо для API?") is False
+
+
+def test_a_foreign_question_is_not_speakable():
+    pack = load("uk")
+
+    assert pack.matches_script("Which cache layer should we use?") is False

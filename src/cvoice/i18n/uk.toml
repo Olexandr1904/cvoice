@@ -13,7 +13,9 @@ say = "Lesya"
 
 [detect]
 requires = "[іїєґІЇЄҐ]"
-forbids = "[ыэъёЫЭЪЁ]|[A-Za-z]{3,}"
+forbids = "[ыэъёЫЭЪЁ]"
+# The built-in voice cannot pronounce latin, so such replies are translated instead.
+latin_ok = false
 
 [phrases]
 "question.single" = "У мене питання, глянь у термінал."

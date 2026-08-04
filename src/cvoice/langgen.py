@@ -152,7 +152,7 @@ def build(language: str, model: str = "haiku") -> Optional[Dict]:
     if str(answer.get("script", "")).lower() == "non-latin":
         # A non-latin voice cannot pronounce latin words, so such replies are translated
         # rather than read out as they stand.
-        pack["detect"] = {"forbids": "[A-Za-z]{3,}"}
+        pack["detect"] = {"latin_ok": False}
     return pack
 
 

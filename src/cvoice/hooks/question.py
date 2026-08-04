@@ -37,7 +37,7 @@ def handle(
         banner = first or context.pack.phrase("question.single")
         if len(questions) > 1:
             banner = f"{banner} (+{len(questions) - 1})"
-        if first and context.pack.matches_language(first):
+        if first and context.pack.matches_script(first):
             spoken = context.pack.phrase("question.with_text", question=first)
         elif len(questions) > 1:
             spoken = context.pack.phrase("question.many")

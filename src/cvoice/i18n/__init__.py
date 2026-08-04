@@ -52,6 +52,7 @@ class Pack:
     say_voice: str = ""
     requires: Optional[str] = None
     forbids: Optional[str] = None
+    latin_ok: bool = True
     translit_table: Table = field(default_factory=Table)
 
     def phrase(self, key: str, **kwargs: object) -> str:
@@ -62,13 +63,26 @@ class Pack:
             # A missing argument must never take the message down.
             return re.sub(r"\{[^}]*\}", "", template).strip()
 
-    def matches_language(self, text: str) -> bool:
-        """True when the text can be spoken as-is by this pack's voice."""
+    def matches_script(self, text: str) -> bool:
+        """True when the text is written in this language.
+
+        Latin words are tolerated here. A question is worth saying in full even when it
+        mentions an API or a class name: the neural voice pronounces those, and the
+        built-in one gets the transliterated version.
+        """
         if self.forbids and re.search(self.forbids, text):
             return False
         if not self.requires:
             return False  # a pack that declares nothing always summarizes
         return bool(re.search(self.requires, text))
+
+    def matches_language(self, text: str) -> bool:
+        """True when the text can be read out word for word, latin included."""
+        if not self.matches_script(text):
+            return False
+        if not self.latin_ok and re.search(r"[A-Za-z]{3,}", text):
+            return False
+        return True
 
 
 def available_languages() -> List[str]:
@@ -99,6 +113,7 @@ def load(language: str) -> Pack:
         summary_system=data["summary_system"],
         requires=detect.get("requires"),
         forbids=detect.get("forbids"),
+        latin_ok=bool(detect.get("latin_ok", True)),
         translit_table=Table(
             terms=translit.get("terms", {}),
             digraphs=[tuple(pair) for pair in translit.get("digraphs", [])],

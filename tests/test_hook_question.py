@@ -104,3 +104,18 @@ def test_mode_off_does_nothing(tmp_path, monkeypatch):
     _run(paths, {"session_id": "s", "tool_name": "ExitPlanMode", "tool_input": {}}, monkeypatch)
 
     assert recent(paths) == []
+
+
+def test_a_question_with_a_latin_term_is_spoken_in_full(tmp_path, monkeypatch):
+    from cvoice.history import recent as _recent
+
+    paths = _paths(tmp_path, language="uk")
+    payload = {
+        "session_id": "s",
+        "tool_name": "AskUserQuestion",
+        "tool_input": {"questions": [{"question": "Який підхід беремо для API?"}]},
+    }
+
+    _run(paths, payload, monkeypatch)
+
+    assert "API" in _recent(paths)[0].text

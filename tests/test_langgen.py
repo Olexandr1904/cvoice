@@ -81,11 +81,19 @@ def test_missing_translations_fall_back_to_english(monkeypatch):
     assert pack["phrases"]["waiting"] == load("en").phrases["waiting"]
 
 
-def test_a_non_latin_script_forbids_latin_words(monkeypatch):
+def test_a_non_latin_script_will_not_read_latin_verbatim(monkeypatch):
+    """A Greek voice cannot pronounce a class name, so such replies get translated."""
     monkeypatch.setattr(langgen.subprocess, "run", FakeRun(_answer(code="el", script="non-latin")))
     _no_voices(monkeypatch)
 
-    assert langgen.build("Greek")["detect"]["forbids"] == "[A-Za-z]{3,}"
+    assert langgen.build("Greek")["detect"]["latin_ok"] is False
+
+
+def test_a_latin_script_language_has_no_such_restriction(monkeypatch):
+    monkeypatch.setattr(langgen.subprocess, "run", FakeRun(_answer(code="pl", script="latin")))
+    _no_voices(monkeypatch)
+
+    assert "detect" not in langgen.build("Polish")
 
 
 def test_stdin_is_closed_for_the_generator(monkeypatch):
