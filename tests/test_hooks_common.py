@@ -149,3 +149,26 @@ def test_detach_spawns_a_background_process(tmp_path, monkeypatch):
     assert spawned["kwargs"]["start_new_session"] is True
     payload_path = spawned["argv"][spawned["argv"].index("--payload") + 1]
     assert json.loads(open(payload_path).read())["session_id"] == "abc"
+
+
+def test_interrupted_playback_is_not_journalled_as_a_failure(tmp_path):
+    """Pressing "silence now" is a user action, not a broken speech stack."""
+    from cvoice.health import failures
+    from cvoice.speech.base import SpeechInterrupted
+
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+
+    class Interrupted:
+        name = "edge-tts"
+
+        def available(self):
+            return True
+
+        def speak(self, text):
+            raise SpeechInterrupted("playback stopped")
+
+    speaker = common.make_speaker(paths, engines=[Interrupted()])
+    speaker("hello", Item(priority=1, label="app", session="s", text="hello"))
+
+    assert failures(paths) == []

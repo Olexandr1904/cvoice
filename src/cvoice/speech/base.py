@@ -36,6 +36,7 @@ def speak_with_fallback(
     on_error: Optional[Callable[[str, Exception], None]] = None,
     on_success: Optional[Callable[[str], None]] = None,
     on_unavailable: Optional[Callable[[str], None]] = None,
+    on_interrupted: Optional[Callable[[str], None]] = None,
 ) -> Optional[str]:
     """Try each engine in order. Returns the name of the one that spoke, or None."""
     for engine in engines:
@@ -48,7 +49,10 @@ def speak_with_fallback(
             engine.speak(text)
         except SpeechInterrupted:
             # Silencing playback must not look like a broken engine, or the fallback
-            # chain cheerfully repeats the very sentence the user just cut off.
+            # chain cheerfully repeats the very sentence the user just cut off - and it
+            # must not be journalled as a failure either.
+            if on_interrupted is not None:
+                on_interrupted(engine.name)
             return None
         except Exception as error:  # noqa: BLE001 - any engine failure is a handover
             if on_error is not None:

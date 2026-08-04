@@ -146,14 +146,16 @@ def make_speaker(paths: Paths, engines: List[object], sink: Optional[Callable[[s
             sink(spoken)
             return
 
+        interrupted = []
         used = speak_with_fallback(
             engines,
             spoken,
             on_error=lambda name, error: health.record(paths, name, str(error)),
             on_success=lambda name: health.clear(paths, component=name),
             on_unavailable=lambda name: health.record(paths, name, "not installed or not reachable"),
+            on_interrupted=lambda name: interrupted.append(name),
         )
-        if used is None:
+        if used is None and not interrupted:
             health.record(paths, "speech", "every engine failed")
 
     return speak
