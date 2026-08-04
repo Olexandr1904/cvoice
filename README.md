@@ -11,6 +11,33 @@ a menu-bar item that keeps everything it said so you can hear it again later.
 
 <img src="docs/menu.png" alt="The cvoice menu: unread counter, mode switch, and a replayable history" width="620">
 
+## Install
+
+Paste this into Claude Code and let it do the work:
+
+```
+Install cvoice from https://github.com/Olexandr1904/cvoice on this Mac: clone it into
+~/Documents, run ./install.sh, and answer the language question it asks. Then run
+~/.cvoice/bin/cv-hook doctor and fix anything it reports. Finish by telling me the one
+alias to add to my shell.
+```
+
+Or by hand:
+
+```bash
+git clone https://github.com/Olexandr1904/cvoice ~/Documents/cvoice
+cd ~/Documents/cvoice && ./install.sh
+```
+
+The installer asks which language it should speak — English, Ukrainian, or any other
+language you name. It then creates its own virtual environment, writes a small shim, and
+wires the hooks into every Claude Code config directory it finds, backing up each
+`settings.json` first. Nothing is installed globally.
+
+```bash
+~/.cvoice/bin/cv-hook doctor    # dependencies, hooks, permissions, Focus state
+```
+
 ---
 
 ## What it does
@@ -25,22 +52,6 @@ a menu-bar item that keeps everything it said so you can hear it again later.
 It does not read the reply out loud. A forty-line answer full of code and file paths is
 unlistenable, so a cheap model condenses it first. Short replies already in your language
 are read as they are, and cost nothing.
-
-## Install
-
-```bash
-git clone https://github.com/<you>/cvoice
-cd cvoice
-./install.sh
-```
-
-The installer creates its own virtual environment, writes a small shim, and wires the hooks
-into every Claude Code config directory it finds — backing up each `settings.json` first.
-Nothing is installed globally.
-
-```bash
-cvoice doctor    # checks dependencies, hooks, permissions, Focus state
-```
 
 ## Modes
 
@@ -108,10 +119,16 @@ voice = "en-US-AriaNeural"
 rate  = "+0%"
 ```
 
-English and Ukrainian ship in the box. A language is one TOML file in
-`src/cvoice/i18n/` holding the spoken phrases, the summarizer prompt, and two regexes
-that decide whether a reply can be read verbatim or has to be translated first. A test
-asserts every pack carries every key, so a language cannot ship half-translated.
+English and Ukrainian ship in the box. Naming any other language at install time
+generates a pack for it: the fixed phrases are translated once, a matching neural voice is
+picked from what your Mac can speak, and the result is written to `~/.cvoice/langs/`. If the
+translation step fails, the pack still speaks your language and only the handful of fixed
+lines stay English.
+
+A pack is one TOML file holding the spoken phrases, the summarizer's system prompt, the
+voices, and two regexes that decide whether a reply can be read as it stands or has to be
+translated first. A test asserts every bundled pack carries every key, so a language cannot
+ship half-translated.
 
 ## How it works
 

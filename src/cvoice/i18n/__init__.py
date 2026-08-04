@@ -21,6 +21,13 @@ from ..speech.translit import Table
 
 PACKS_DIR = Path(__file__).parent
 
+
+def _user_packs_dir() -> Path:
+    """Packs generated at install time for languages that do not ship with the tool."""
+    from ..state import Paths
+
+    return Paths.default().root / "langs"
+
 REQUIRED_PHRASES = (
     "question.single",
     "question.with_text",
@@ -65,11 +72,18 @@ class Pack:
 
 
 def available_languages() -> List[str]:
-    return sorted(path.stem for path in PACKS_DIR.glob("*.toml"))
+    bundled = {path.stem for path in PACKS_DIR.glob("*.toml")}
+    try:
+        generated = {path.stem for path in _user_packs_dir().glob("*.toml")}
+    except OSError:
+        generated = set()
+    return sorted(bundled | generated)
 
 
 def load(language: str) -> Pack:
     path = PACKS_DIR / f"{language}.toml"
+    if not path.exists():
+        path = _user_packs_dir() / f"{language}.toml"
     if not path.exists():
         raise LookupError(f"no language pack for {language!r}")
     data = tomllib.loads(path.read_text())

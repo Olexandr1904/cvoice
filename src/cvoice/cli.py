@@ -279,6 +279,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         from .i18n import available_languages
 
         if args.value not in available_languages():
+            # Not a bundled pack: treat it as the name of a language and build one.
+            from .langgen import build, write
+
+            print(f"Preparing {args.value}...")
+            pack = build(args.value, model=config.model)
+            if pack is None:
+                print(f"could not work out a language code for {args.value!r}", file=sys.stderr)
+                return 1
+            args.value = write(pack, paths.root / "langs")
+        if args.value not in available_languages():
             print(f"unknown language {args.value!r}; available: {', '.join(available_languages())}", file=sys.stderr)
             return 1
         # A language without its voices is useless: an English voice reading Ukrainian

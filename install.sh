@@ -37,11 +37,28 @@ EOF
 chmod +x "$HOME_DIR/bin/cv-hook"
 
 if [ -z "$LANGUAGE" ]; then
-  printf 'Speech language [en]: '
-  read -r LANGUAGE || true
-  LANGUAGE="${LANGUAGE:-en}"
+  echo
+  echo "Which language should it speak?"
+  echo "  1) English"
+  echo "  2) Ukrainian"
+  echo "  3) Other"
+  printf 'Choice [1]: '
+  read -r CHOICE || true
+  case "${CHOICE:-1}" in
+    1|"") LANGUAGE="en" ;;
+    2)    LANGUAGE="uk" ;;
+    3)    printf 'Language name (for example: Polish, German, 日本語): '
+          read -r LANGUAGE || true
+          # Anything outside the two bundled packs is generated on the spot: the phrases
+          # are translated and a matching voice is picked from what this Mac can speak.
+          [ -n "$LANGUAGE" ] || LANGUAGE="en" ;;
+    *)    echo "    not an option, using English"; LANGUAGE="en" ;;
+  esac
 fi
-"$HOME_DIR/bin/cv-hook" language "$LANGUAGE" >/dev/null 2>&1 || true
+if ! "$HOME_DIR/bin/cv-hook" language "$LANGUAGE"; then
+  echo "    could not set up $LANGUAGE, falling back to English"
+  "$HOME_DIR/bin/cv-hook" language en >/dev/null
+fi
 
 if [ "$INSTALL_HOOKS" = 1 ]; then
   echo "==> Installing hooks"
