@@ -137,7 +137,12 @@ def _clear(paths: Paths) -> None:
         path.unlink(missing_ok=True)
 
 
-def _drain_once(paths: Paths, speaker: Speaker, is_paused: Callable[[], bool]) -> int:
+def _drain_once(
+    paths: Paths,
+    speaker: Speaker,
+    is_paused: Callable[[], bool],
+    is_hard_muted: Callable[[], bool],
+) -> int:
     spoken = 0
     while True:
         queued = pending(paths)
@@ -151,8 +156,15 @@ def _drain_once(paths: Paths, speaker: Speaker, is_paused: Callable[[], bool]) -
             continue
         path.unlink(missing_ok=True)
 
-        # Paused mid-drain: drop what is queued rather than say it late. An explicit
-        # replay still goes through. State is re-read for every single utterance.
+        # A hard mute is a live condition of the room - someone is recording - and no
+        # explicit request may talk over it. A snooze is a timer the user set earlier,
+        # so an explicit replay is allowed to override that one.
+        if is_hard_muted():
+            _clear(paths)
+            return spoken
+
+        # Paused mid-drain: drop what is queued rather than say it late. State is
+        # re-read for every single utterance.
         if item.flags != "force" and is_paused():
             _clear(paths)
             return spoken
@@ -164,7 +176,12 @@ def _drain_once(paths: Paths, speaker: Speaker, is_paused: Callable[[], bool]) -
         spoken += 1
 
 
-def drain(paths: Paths, speaker: Speaker, is_paused: Callable[[], bool] = lambda: False) -> int:
+def drain(
+    paths: Paths,
+    speaker: Speaker,
+    is_paused: Callable[[], bool] = lambda: False,
+    is_hard_muted: Callable[[], bool] = lambda: False,
+) -> int:
     """Speak everything queued. Returns how many utterances this call handled.
 
     Returns 0 immediately if another process holds the lock - that process will pick up
@@ -173,11 +190,11 @@ def drain(paths: Paths, speaker: Speaker, is_paused: Callable[[], bool] = lambda
     with lock(paths) as acquired:
         if not acquired:
             return 0
-        spoken = _drain_once(paths, speaker, is_paused)
+        spoken = _drain_once(paths, speaker, is_paused, is_hard_muted)
 
     # Something may have been queued between the last check and releasing the lock.
     if pending(paths):
         with lock(paths) as acquired:
             if acquired:
-                spoken += _drain_once(paths, speaker, is_paused)
+                spoken += _drain_once(paths, speaker, is_paused, is_hard_muted)
     return spoken

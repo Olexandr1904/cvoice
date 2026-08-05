@@ -36,6 +36,19 @@ exec "$HOME_DIR/.venv/bin/cvoice" "\$@"
 EOF
 chmod +x "$HOME_DIR/bin/cv-hook"
 
+# Optional: a tiny helper that answers whether anything is recording, so speech can
+# stop by itself during a call. Without swiftc the feature simply stays off.
+HELPER_SRC="$SOURCE_DIR/src/cvoice/helpers/micbusy.swift"
+if command -v swiftc >/dev/null && [ -f "$HELPER_SRC" ]; then
+  if swiftc -O -o "$HOME_DIR/bin/micbusy" "$HELPER_SRC" 2>/dev/null; then
+    echo "==> Microphone detection built: speech pauses itself during calls"
+  else
+    echo "    could not build the microphone helper; that feature stays off"
+  fi
+else
+  echo "    swiftc not found; speech will not pause itself during calls"
+fi
+
 if [ -z "$LANGUAGE" ] && [ ! -t 0 ]; then
   # Nobody is there to answer: an agent or a pipe is running this. Say so out loud
   # rather than silently reading an empty line and picking a language for them.

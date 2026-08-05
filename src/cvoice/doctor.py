@@ -114,6 +114,22 @@ def checks(paths: Paths, config: Config) -> List[Check]:
         )
     )
 
+    if config.mute_while_mic_in_use:
+        from .mic import in_use
+
+        built = paths.mic_helper.exists()
+        results.append(
+            Check(
+                name="microphone detection",
+                ok=built,
+                detail=("recording right now" if in_use(paths.mic_helper) else "idle")
+                if built
+                else "helper not built (needs swiftc)",
+                remedy="install Xcode command line tools, then run ./install.sh again",
+                advisory=True,
+            )
+        )
+
     suppressed = focus_active()
     results.append(
         Check(

@@ -126,3 +126,25 @@ def test_only_one_utterance_at_a_time_across_threads(tmp_path):
     ordered = sorted(speaker.intervals)
     for (_, first_end), (second_start, _) in zip(ordered, ordered[1:]):
         assert first_end <= second_start + 1e-6, "two utterances overlapped"
+
+
+def test_a_forced_item_is_still_silenced_by_a_hard_mute(tmp_path):
+    """Someone is recording: speaking over a call is wrong even on an explicit replay."""
+    paths = _paths(tmp_path)
+    speaker = RecordingSpeaker(delay=0)
+    enqueue(paths, Item(priority=0, label="app", session="s", text="replay", flags="force"))
+
+    drain(paths, speaker, is_paused=lambda: False, is_hard_muted=lambda: True)
+
+    assert speaker.spoken == []
+    assert pending(paths) == []
+
+
+def test_a_forced_item_still_overrides_a_snooze(tmp_path):
+    paths = _paths(tmp_path)
+    speaker = RecordingSpeaker(delay=0)
+    enqueue(paths, Item(priority=0, label="app", session="s", text="replay", flags="force"))
+
+    drain(paths, speaker, is_paused=lambda: True, is_hard_muted=lambda: False)
+
+    assert speaker.spoken == ["replay"]

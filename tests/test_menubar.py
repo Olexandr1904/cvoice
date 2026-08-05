@@ -87,3 +87,17 @@ def test_long_history_text_is_truncated(tmp_path):
     add(paths, kind="tldr", label="app", text="x" * 200)
 
     assert "…" in render(paths, Config())
+
+
+def test_the_icon_shows_when_the_microphone_is_busy(tmp_path, monkeypatch):
+    import cvoice.mic as mic
+
+    paths = _paths(tmp_path)
+    paths.mic_helper.parent.mkdir(parents=True, exist_ok=True)
+    paths.mic_helper.write_text("#!/bin/sh\n")
+    monkeypatch.setattr(mic, "in_use", lambda helper: True)
+
+    output = render(paths, Config(mode="voice"))
+
+    assert _title(output).startswith("🎙")
+    assert "Quiet while you are recording" in output

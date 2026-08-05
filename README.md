@@ -106,6 +106,17 @@ The counter matters more than it looks: macOS Focus suppresses banners entirely 
 delivered, they just never appear — and Focus is usually on exactly when you are in a call.
 The menu bar is not suppressed, so the signal survives.
 
+## Calls
+
+While anything is recording, it says nothing. A small helper asks CoreAudio whether an input
+device is running, so joining a call is enough — there is no button to reach for, which
+matters when the menu bar is full and the icon has been pushed out of sight. The icon turns
+into 🎙 while this is in effect, and speech resumes by itself when the call ends. Unlike a
+snooze, this cannot be overridden: an explicit replay will not talk over a call either.
+
+It needs `swiftc` at install time. Without it the feature stays off and everything else
+works. Turn it off with `mute_while_mic_in_use = false`.
+
 ## Voices and languages
 
 Speech goes through [`edge-tts`](https://github.com/rany2/edge-tts), which uses the same

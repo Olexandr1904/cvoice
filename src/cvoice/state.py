@@ -47,6 +47,14 @@ class Paths:
         return self.root / "state"
 
     @property
+    def bin_dir(self) -> Path:
+        return self.root / "bin"
+
+    @property
+    def mic_helper(self) -> Path:
+        return self.bin_dir / "micbusy"
+
+    @property
     def history_file(self) -> Path:
         return self.root / "history.jsonl"
 

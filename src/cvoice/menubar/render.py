@@ -43,14 +43,24 @@ def render(paths: Paths, config: Config) -> str:
     until = snoozed_until(paths)
     unread = _unread(paths)
 
+    muted_by_mic = False
+    if config.mute_while_mic_in_use and paths.mic_helper.exists():
+        from ..mic import in_use
+
+        muted_by_mic = in_use(paths.mic_helper)
+
     if failures:
         icon = "⚠️"
+    elif muted_by_mic:
+        icon = "🎙"
     elif until is not None:
         icon = f"⏸ {int((until - time.time()) / 60) + 1}m"
     else:
         icon = ICONS.get(config.mode, "🔔")
     lines.append(f"{icon} {unread}" if unread else icon)
     lines.append("---")
+    if muted_by_mic:
+        lines.append("Quiet while you are recording | color=#8e8e93")
 
     for failure in failures:
         lines.append(f"{_clean(failure.component)}: {_clean(failure.error)} | color=#ff9f0a")

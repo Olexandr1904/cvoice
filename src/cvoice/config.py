@@ -23,6 +23,7 @@ class Config:
     mode: str = "notify"
     engine: str = "edge"
     model: str = "sonnet"
+    mute_while_mic_in_use: bool = True
     edge_voice: str = "en-US-AriaNeural"
     edge_rate: str = "+0%"
     say_voice: str = "Samantha"
@@ -47,6 +48,7 @@ def load(paths: Paths) -> Config:
         mode=normalise_mode(data.get("mode", defaults.mode)),
         engine=data.get("engine", defaults.engine),
         model=data.get("model", defaults.model),
+        mute_while_mic_in_use=bool(data.get("mute_while_mic_in_use", defaults.mute_while_mic_in_use)),
         edge_voice=edge.get("voice", defaults.edge_voice),
         edge_rate=edge.get("rate", defaults.edge_rate),
         say_voice=say.get("voice", defaults.say_voice),
@@ -60,6 +62,7 @@ def save(paths: Paths, config: Config) -> None:
         "mode": config.mode,
         "engine": config.engine,
         "model": config.model,
+        "mute_while_mic_in_use": config.mute_while_mic_in_use,
         "edge": {"voice": config.edge_voice, "rate": config.edge_rate},
         "say": {"voice": config.say_voice, "rate": config.say_rate},
     }

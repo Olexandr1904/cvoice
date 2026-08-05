@@ -213,3 +213,30 @@ def test_an_unbundled_language_is_generated_and_selected(tmp_path, monkeypatch):
     assert config.language == "pl"
     assert config.edge_voice == "pl-PL-ZofiaNeural"
     assert (paths.root / "langs" / "pl.toml").exists()
+
+
+def test_a_busy_microphone_mutes_speech(tmp_path, monkeypatch):
+    import cvoice.mic as mic
+
+    paths = _home(tmp_path, monkeypatch)
+    monkeypatch.setattr(mic, "in_use", lambda helper: True)
+
+    assert cli.muted_now(paths, load(paths)) is True
+
+
+def test_an_idle_microphone_does_not(tmp_path, monkeypatch):
+    import cvoice.mic as mic
+
+    paths = _home(tmp_path, monkeypatch)
+    monkeypatch.setattr(mic, "in_use", lambda helper: False)
+
+    assert cli.muted_now(paths, load(paths)) is False
+
+
+def test_the_microphone_can_be_ignored_by_config(tmp_path, monkeypatch):
+    import cvoice.mic as mic
+
+    paths = _home(tmp_path, monkeypatch, mute_while_mic_in_use=False)
+    monkeypatch.setattr(mic, "in_use", lambda helper: True)
+
+    assert cli.muted_now(paths, load(paths)) is False

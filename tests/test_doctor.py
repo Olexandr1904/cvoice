@@ -33,7 +33,9 @@ def test_everything_present_passes(tmp_path, monkeypatch):
     _all_present(monkeypatch)
     monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
 
-    assert all(check.ok for check in checks(_paths(tmp_path), Config()) if check.name != "focus")
+    # Advisory checks describe the machine, not our install: Focus being on, or the
+    # microphone helper not being built.
+    assert all(check.ok for check in checks(_paths(tmp_path), Config()) if not check.advisory)
 
 
 def test_recorded_failures_surface_as_a_failed_check(tmp_path, monkeypatch):

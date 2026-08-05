@@ -27,6 +27,20 @@ HOOKS = {
 }
 
 
+def muted_now(paths: Paths, config: config_module.Config) -> bool:
+    """Anything that should keep the speakers quiet at this instant."""
+    return snoozed_until(paths) is not None or recording_now(paths, config)
+
+
+def recording_now(paths: Paths, config: config_module.Config) -> bool:
+    """Someone is on a call. Not even an explicit replay may talk over this."""
+    if not config.mute_while_mic_in_use:
+        return False
+    from .mic import in_use
+
+    return in_use(paths.mic_helper)
+
+
 def stop_playback() -> None:
     for binary in ("say", "afplay"):
         subprocess.run(["pkill", "-x", binary], capture_output=True)
@@ -156,7 +170,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.command == "worker":
         speaker = common.make_speaker(paths, engines=_engines(paths, config))
-        drain(paths, speaker, is_paused=lambda: snoozed_until(paths) is not None)
+        drain(
+            paths,
+            speaker,
+            is_paused=lambda: snoozed_until(paths) is not None,
+            is_hard_muted=lambda: recording_now(paths, config),
+        )
         return 0
 
     if args.command == "status":
