@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Tuple
+from dataclasses import dataclass, field
+from typing import List, Tuple
 
 try:  # Python 3.11+
     import tomllib
@@ -28,6 +28,7 @@ class Config:
     edge_rate: str = "+0%"
     say_voice: str = "Samantha"
     say_rate: int = 180
+    codex_original_notify: List[str] = field(default_factory=list)
 
 
 def normalise_mode(value: str) -> str:
@@ -53,6 +54,7 @@ def load(paths: Paths) -> Config:
         edge_rate=edge.get("rate", defaults.edge_rate),
         say_voice=say.get("voice", defaults.say_voice),
         say_rate=int(say.get("rate", defaults.say_rate)),
+        codex_original_notify=[str(item) for item in data.get("codex_original_notify", [])],
     )
 
 
@@ -65,6 +67,7 @@ def save(paths: Paths, config: Config) -> None:
         "mute_while_mic_in_use": config.mute_while_mic_in_use,
         "edge": {"voice": config.edge_voice, "rate": config.edge_rate},
         "say": {"voice": config.say_voice, "rate": config.say_rate},
+        "codex_original_notify": list(config.codex_original_notify),
     }
     paths.config_file.parent.mkdir(parents=True, exist_ok=True)
     paths.config_file.write_bytes(tomli_w.dumps(payload).encode())

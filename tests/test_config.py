@@ -133,3 +133,19 @@ def test_scope_file_name_is_filesystem_safe(tmp_path):
     assert path.parent == paths.scopes_dir
     assert "/" not in path.name
     assert " " not in path.name
+
+
+def test_the_original_codex_notify_is_stored(tmp_path):
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+
+    save(paths, Config(codex_original_notify=["/opt/thing", "turn-ended"]))
+
+    assert load(paths).codex_original_notify == ["/opt/thing", "turn-ended"]
+
+
+def test_no_stored_notify_by_default(tmp_path):
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+
+    assert load(paths).codex_original_notify == []
