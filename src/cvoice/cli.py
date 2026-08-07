@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from . import config as config_module
 from . import health, history
+from .hooks import codex as codex_hook
 from .hooks import common
 from .hooks import notification as notification_hook
 from .hooks import prompt_submit as prompt_submit_hook
@@ -100,9 +101,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     hook = sub.add_parser("hook")
-    hook.add_argument("name", choices=sorted(HOOKS))
-    hook.add_argument("--payload", type=Path, default=None)
-    hook.add_argument("--detached", action="store_true")
+    hook_kind = hook.add_subparsers(dest="name", required=True)
+    for name in sorted(HOOKS):
+        claude_hook = hook_kind.add_parser(name)
+        claude_hook.add_argument("--payload", type=Path, default=None)
+        claude_hook.add_argument("--detached", action="store_true")
+    codex_parser = hook_kind.add_parser("codex")
+    codex_parser.add_argument("args", nargs=argparse.REMAINDER)
 
     sub.add_parser("worker")
     sub.add_parser("status")
@@ -139,6 +144,9 @@ def build_parser() -> argparse.ArgumentParser:
     remover = sub.add_parser("remove-hooks")
     remover.add_argument("config_dirs", nargs="+", type=Path)
 
+    sub.add_parser("install-codex")
+    sub.add_parser("remove-codex")
+
     migration = sub.add_parser("migrate")
     migration.add_argument("--from", dest="old_root", type=Path, default=Path.home() / ".claude-tts")
 
@@ -149,6 +157,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    raw = sys.argv[1:] if argv is None else list(argv)
+    if raw[:2] == ["hook", "codex"]:
+        # Codex's own arguments follow, and some may look like flags (`--verbose`
+        # and the like). argparse.REMAINDER cannot be trusted here: CPython's
+        # argparse mishandles nargs=REMAINDER when it is the first thing after a
+        # subparser boundary and the next token starts with "-" (it raises
+        # "unrecognized arguments" instead of collecting it). Dispatching before
+        # argparse ever sees these tokens sidesteps that entirely.
+        paths = Paths.default()
+        paths.ensure()
+        codex_hook.main(raw[2:], paths=paths)
+        return 0
+
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
@@ -323,6 +344,23 @@ def main(argv: Optional[List[str]] = None) -> int:
         config.language = args.value
         config_module.save(paths, config)
         print(args.value)
+        return 0
+
+    if args.command in ("install-codex", "remove-codex"):
+        from .codex import config_path, is_installed
+        from .install import install_codex, remove_codex
+
+        codex_config = config_path()
+        if not is_installed(codex_config):
+            print("Codex is not installed; nothing to do")
+            return 0
+        shim = str(paths.root / "bin" / "cv-hook")
+        if args.command == "install-codex":
+            install_codex(codex_config, paths, shim=shim)
+            print(f"Codex will report through {shim}")
+        else:
+            remove_codex(codex_config, paths)
+            print("Codex notify restored")
         return 0
 
     return 2

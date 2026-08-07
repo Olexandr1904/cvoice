@@ -32,6 +32,12 @@ if [ "$REMOVE_HOOKS" = 1 ]; then
   done
 fi
 
+# Independent of --no-hooks for the same reason as in install.sh: that flag is about
+# Claude Code's settings.json, not Codex's config.toml.
+if [ -x "$HOME_DIR/bin/cv-hook" ]; then
+  "$HOME_DIR/bin/cv-hook" remove-codex || true
+fi
+
 PLUGIN_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
 [ -n "$PLUGIN_DIR" ] && rm -f "$PLUGIN_DIR/cvoice.10s.sh"
 

@@ -240,3 +240,66 @@ def test_the_microphone_can_be_ignored_by_config(tmp_path, monkeypatch):
     monkeypatch.setattr(mic, "in_use", lambda helper: True)
 
     assert cli.muted_now(paths, load(paths)) is False
+
+
+def test_the_codex_hook_is_dispatched(tmp_path, monkeypatch):
+    import cvoice.hooks.codex as codex_hook
+
+    _home(tmp_path, monkeypatch)
+    seen = []
+    monkeypatch.setattr(codex_hook, "main", lambda args, paths=None: seen.append(args))
+
+    cli.main(["hook", "codex", "turn-ended", '{"message": "Done."}'])
+
+    assert seen == [["turn-ended", '{"message": "Done."}']]
+
+
+def test_the_codex_hook_takes_arguments_that_look_like_flags(tmp_path, monkeypatch):
+    """Codex chooses the arguments, not us; argparse must not try to interpret them."""
+    import cvoice.hooks.codex as codex_hook
+
+    _home(tmp_path, monkeypatch)
+    seen = []
+    monkeypatch.setattr(codex_hook, "main", lambda args, paths=None: seen.append(args))
+
+    cli.main(["hook", "codex", "--verbose", "{}"])
+
+    assert seen == [["--verbose", "{}"]]
+
+
+def test_install_codex_reports_when_codex_is_absent(tmp_path, monkeypatch, capsys):
+    _home(tmp_path, monkeypatch)
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "nowhere"))
+
+    assert cli.main(["install-codex"]) == 0
+    assert "not installed" in capsys.readouterr().out
+
+
+def test_install_codex_takes_the_slot(tmp_path, monkeypatch, capsys):
+    from cvoice.codex import read_notify
+
+    paths = _home(tmp_path, monkeypatch)
+    codex_home = tmp_path / "codex"
+    codex_home.mkdir()
+    (codex_home / "config.toml").write_text('notify = ["/opt/thing"]\n')
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+
+    assert cli.main(["install-codex"]) == 0
+
+    assert read_notify(codex_home / "config.toml") == [
+        str(paths.root / "bin" / "cv-hook"), "hook", "codex",
+    ]
+
+
+def test_remove_codex_restores_the_slot(tmp_path, monkeypatch):
+    from cvoice.codex import read_notify
+
+    _home(tmp_path, monkeypatch)
+    codex_home = tmp_path / "codex"
+    codex_home.mkdir()
+    (codex_home / "config.toml").write_text('notify = ["/opt/thing"]\n')
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+    cli.main(["install-codex"])
+
+    assert cli.main(["remove-codex"]) == 0
+    assert read_notify(codex_home / "config.toml") == ["/opt/thing"]

@@ -36,8 +36,14 @@ def _save(settings: Path, data: dict) -> None:
 
 
 def _backup(settings: Path) -> None:
+    """Copy `settings` next to itself, named `<original name>.backup-<timestamp>`.
+
+    Built with `with_name` rather than `with_suffix` so this works for any extension -
+    `settings.json` as much as Codex's `config.toml`.
+    """
     if settings.exists():
-        shutil.copy2(settings, settings.with_suffix(f".json.backup-{time.strftime('%Y%m%d%H%M%S')}"))
+        backup = settings.with_name(f"{settings.name}.backup-{time.strftime('%Y%m%d%H%M%S')}")
+        shutil.copy2(settings, backup)
 
 
 def _owned(command: str) -> bool:
@@ -107,3 +113,54 @@ def remove_hooks(config_dir: Path) -> None:
 
     if removed:
         _save(settings, data)
+
+
+from . import codex as codex_files
+from . import config as config_module
+from .state import Paths
+
+
+def _is_ours(command: List[str]) -> bool:
+    return bool(command) and SHIM_MARKER in command[0]
+
+
+def install_codex(codex_config: Path, paths: Paths, shim: str) -> bool:
+    """Take Codex's notify slot, remembering whatever was in it. Returns False when Codex
+    is not installed.
+
+    The displaced command is stored in our own config, never in Codex's: that file is
+    rewritten by the app itself, so recovering the original must not depend on it.
+    """
+    codex_config = Path(codex_config)
+    if not codex_config.exists():
+        return False
+
+    current = codex_files.read_notify(codex_config)
+    ours = [shim, "hook", "codex"]
+    if current == ours:
+        return True  # already installed; installing twice must not chain to ourselves
+
+    config = config_module.load(paths)
+    if not _is_ours(current):
+        config.codex_original_notify = current
+        config_module.save(paths, config)
+
+    _backup(codex_config)
+    codex_files.write_notify(codex_config, ours)
+    return True
+
+
+def remove_codex(codex_config: Path, paths: Paths) -> bool:
+    """Put back whatever we displaced, and forget it."""
+    codex_config = Path(codex_config)
+    if not codex_config.exists():
+        return False
+    if not _is_ours(codex_files.read_notify(codex_config)):
+        return False  # not ours to restore
+
+    config = config_module.load(paths)
+    _backup(codex_config)
+    codex_files.write_notify(codex_config, config.codex_original_notify)
+    config.codex_original_notify = []
+    config_module.save(paths, config)
+    return True

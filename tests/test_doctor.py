@@ -1,8 +1,17 @@
+import pytest
+
 import cvoice.doctor as doctor_module
 from cvoice.config import Config
 from cvoice.doctor import checks, report
 from cvoice.health import record
 from cvoice.state import Paths
+
+
+@pytest.fixture(autouse=True)
+def _no_real_codex(tmp_path, monkeypatch):
+    """The codex check reads CODEX_HOME; a test that does not care about it must not
+    accidentally see the developer's own ~/.codex. Tests that do care override this."""
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "no-codex-by-default"))
 
 
 def _paths(tmp_path):
@@ -107,3 +116,40 @@ def test_a_real_fault_still_fails_the_run(tmp_path, monkeypatch):
     monkeypatch.setattr(doctor_module, "focus_active", lambda: False)
 
     assert report(_paths(tmp_path), Config()) == 1
+
+
+def _codex(tmp_path, notify):
+    codex_home = tmp_path / "codex"
+    codex_home.mkdir(exist_ok=True)
+    (codex_home / "config.toml").write_text(f"notify = {notify}\n")
+    return codex_home
+
+
+def test_an_installed_codex_hook_passes(tmp_path, monkeypatch):
+    _all_present(monkeypatch)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    monkeypatch.setenv("CODEX_HOME", str(_codex(tmp_path, '["/x/cv-hook", "hook", "codex"]')))
+
+    results = {check.name: check for check in checks(_paths(tmp_path), Config())}
+
+    assert results["codex"].ok is True
+
+
+def test_a_displaced_codex_hook_is_reported(tmp_path, monkeypatch):
+    """Codex rewrites its own config, so our slot can be taken back at any time."""
+    _all_present(monkeypatch)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    monkeypatch.setenv("CODEX_HOME", str(_codex(tmp_path, '["/opt/other"]')))
+
+    results = {check.name: check for check in checks(_paths(tmp_path), Config())}
+
+    assert results["codex"].ok is False
+    assert "install.sh" in results["codex"].remedy
+
+
+def test_an_absent_codex_is_not_reported_at_all(tmp_path, monkeypatch):
+    _all_present(monkeypatch)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "nowhere"))
+
+    assert "codex" not in {check.name for check in checks(_paths(tmp_path), Config())}

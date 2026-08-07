@@ -194,6 +194,15 @@ def test_a_finished_turn_is_reported(tmp_path, monkeypatch):
     assert [entry.text for entry in recent(paths)] == ["Done, all tests pass."]
 
 
+def test_a_long_turn_is_summarised(tmp_path, monkeypatch):
+    paths = _prepare(tmp_path)
+    long_reply = _payload(**{"last-assistant-message": "word " * 200})
+
+    _run(paths, [long_reply], monkeypatch, summary="Short summary.")
+
+    assert [entry.text for entry in recent(paths)] == ["Short summary."]
+
+
 def test_the_entry_is_marked_as_codex(tmp_path, monkeypatch):
     paths = _prepare(tmp_path)
 

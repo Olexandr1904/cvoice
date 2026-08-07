@@ -130,6 +130,25 @@ def checks(paths: Paths, config: Config) -> List[Check]:
             )
         )
 
+    from .codex import config_path as codex_config_path
+    from .codex import is_installed as codex_installed
+    from .codex import read_notify
+
+    codex_config = codex_config_path()
+    if codex_installed(codex_config):
+        notify = read_notify(codex_config)
+        installed = bool(notify) and "cv-hook" in notify[0]
+        results.append(
+            Check(
+                name="codex",
+                ok=installed,
+                detail="reporting through cvoice"
+                if installed
+                else f"notify points elsewhere: {' '.join(notify) or 'unset'}",
+                remedy="run ./install.sh again to take the slot back",
+            )
+        )
+
     suppressed = focus_active()
     results.append(
         Check(

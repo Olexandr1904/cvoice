@@ -1089,9 +1089,20 @@ def _run(paths, args, monkeypatch, summary="Summarised.", used_tools=True):
 
 
 def test_a_finished_turn_is_reported(tmp_path, monkeypatch):
+    """The default payload is short English, so it is used verbatim - the summariser
+    path has its own test below."""
     paths = _prepare(tmp_path)
 
-    _run(paths, ["turn-ended", _payload()], monkeypatch, summary="Short summary.")
+    _run(paths, ["turn-ended", _payload()], monkeypatch, summary="unused")
+
+    assert [entry.text for entry in recent(paths)] == ["Done, all tests pass."]
+
+
+def test_a_long_turn_is_summarised(tmp_path, monkeypatch):
+    paths = _prepare(tmp_path)
+    long_reply = _payload(**{"last-assistant-message": "word " * 200})
+
+    _run(paths, [long_reply], monkeypatch, summary="Short summary.")
 
     assert [entry.text for entry in recent(paths)] == ["Short summary."]
 

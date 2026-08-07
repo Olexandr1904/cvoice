@@ -106,6 +106,20 @@ The counter matters more than it looks: macOS Focus suppresses banners entirely 
 delivered, they just never appear — and Focus is usually on exactly when you are in a call.
 The menu bar is not suppressed, so the signal survives.
 
+## Codex
+
+Codex is supported alongside Claude Code, for end-of-turn summaries. It offers a single
+notification slot, and on a normal install that slot is already used by Codex Computer Use,
+so cvoice chains rather than replaces: whatever was configured is stored, called first, and
+put back on uninstall.
+
+You hear which agent is speaking only when it changes — "Codex, project-name" — the same way
+project names already behave.
+
+Codex surfaces neither questions nor permission prompts as events, so those are not
+reported for it. Codex also rewrites its own config from time to time, which can take the
+slot back; `cv doctor` says so when it happens, and re-running `./install.sh` restores it.
+
 ## Calls
 
 While anything is recording, it says nothing. A small helper asks CoreAudio whether an input

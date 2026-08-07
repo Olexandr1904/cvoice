@@ -165,3 +165,118 @@ def test_a_second_run_leaves_the_file_byte_identical(tmp_path):
     install_hooks(config_dir, shim="/shim/cv-hook")
 
     assert (config_dir / "settings.json").read_text() == after_first
+
+
+from cvoice.codex import read_notify
+from cvoice.config import Config, load, save
+from cvoice.install import install_codex, remove_codex
+from cvoice.state import Paths
+
+
+def _home(tmp_path):
+    paths = Paths(root=tmp_path / "home")
+    paths.ensure()
+    save(paths, Config())
+    return paths
+
+
+def _codex_config(tmp_path, text='notify = ["/opt/thing", "turn-ended"]\n'):
+    path = tmp_path / "config.toml"
+    path.write_text(text)
+    return path
+
+
+def test_the_shim_takes_the_slot(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    install_codex(config, paths, shim="/home/me/.cvoice/bin/cv-hook")
+
+    assert read_notify(config) == ["/home/me/.cvoice/bin/cv-hook", "hook", "codex"]
+
+
+def test_the_displaced_command_is_stored(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert load(paths).codex_original_notify == ["/opt/thing", "turn-ended"]
+
+
+def test_installing_twice_does_not_chain_to_itself(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert load(paths).codex_original_notify == ["/opt/thing", "turn-ended"]
+    assert read_notify(config) == ["/shim/cv-hook", "hook", "codex"]
+
+
+def test_an_empty_slot_is_taken_with_nothing_stored(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path, 'model = "gpt"\n')
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert read_notify(config) == ["/shim/cv-hook", "hook", "codex"]
+    assert load(paths).codex_original_notify == []
+
+
+def test_other_codex_settings_survive(tmp_path):
+    paths = _home(tmp_path)
+    config = _codex_config(
+        tmp_path, 'notify = ["/opt/thing"]\n\n[plugins."browser@bundled"]\nenabled = true\n'
+    )
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert "browser@bundled" in config.read_text()
+
+
+def test_a_codex_backup_is_written(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert len(list(tmp_path.glob("config.toml.backup-*"))) == 1
+
+
+def test_a_second_run_writes_no_second_backup(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert len(list(tmp_path.glob("config.toml.backup-*"))) == 1
+
+
+def test_a_missing_codex_is_not_an_error(tmp_path):
+    paths = _home(tmp_path)
+
+    assert install_codex(tmp_path / "nowhere.toml", paths, shim="/shim/cv-hook") is False
+
+
+def test_removal_restores_the_displaced_command(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    remove_codex(config, paths)
+
+    assert read_notify(config) == ["/opt/thing", "turn-ended"]
+    assert load(paths).codex_original_notify == []
+
+
+def test_removal_of_an_empty_original_clears_the_slot(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path, 'model = "gpt"\n')
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    remove_codex(config, paths)
+
+    assert read_notify(config) == []
+
+
+def test_removal_leaves_someone_elses_slot_alone(tmp_path):
+    paths, config = _home(tmp_path), _codex_config(tmp_path)
+
+    remove_codex(config, paths)
+
+    assert read_notify(config) == ["/opt/thing", "turn-ended"]
