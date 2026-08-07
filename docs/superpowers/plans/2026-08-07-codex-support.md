@@ -1759,13 +1759,21 @@ There is no unit test for a bootstrap script; it is verified by running it. Fix 
 acceptance criteria first:
 
 ```bash
-# From a clone, after Step 3:
+# From a clone, after Step 3. --no-hooks keeps this run away from the real ~/.claude*
+# AND the real ~/.codex, so the Codex step is exercised directly rather than through
+# install.sh - which is the only honest way to test it without a sandboxed HOME.
 mkdir -p /tmp/cv-codex && printf 'notify = ["/opt/thing", "turn-ended"]\n' > /tmp/cv-codex/config.toml
-CVOICE_HOME=/tmp/cv-test CODEX_HOME=/tmp/cv-codex ./install.sh --no-hooks --no-menubar --language en
+CVOICE_HOME=/tmp/cv-test ./install.sh --no-hooks --no-menubar --language en
+
+CODEX_HOME=/tmp/cv-codex CVOICE_HOME=/tmp/cv-test /tmp/cv-test/bin/cv-hook install-codex
 grep notify /tmp/cv-codex/config.toml          # must point at /tmp/cv-test/bin/cv-hook
-CVOICE_HOME=/tmp/cv-test CODEX_HOME=/tmp/cv-codex ./uninstall.sh --no-hooks
+CODEX_HOME=/tmp/cv-codex CVOICE_HOME=/tmp/cv-test /tmp/cv-test/bin/cv-hook remove-codex
 grep notify /tmp/cv-codex/config.toml          # must be /opt/thing again
 ```
+
+Note what `--no-hooks` now covers: both agents. It means "do not wire me into anything",
+and every sandboxed run depends on that. Wiring it to Claude only would let a run with a
+scratch `CVOICE_HOME` still reach out and take the real Codex slot.
 
 - [ ] **Step 2: Run it to verify it fails**
 

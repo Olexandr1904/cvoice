@@ -32,9 +32,9 @@ if [ "$REMOVE_HOOKS" = 1 ]; then
   done
 fi
 
-# Independent of --no-hooks for the same reason as in install.sh: that flag is about
-# Claude Code's settings.json, not Codex's config.toml.
-if [ -x "$HOME_DIR/bin/cv-hook" ]; then
+# Gated on --no-hooks for the same reason as in install.sh: that flag means "leave my
+# agents alone", and sandboxed runs depend on it.
+if [ "$REMOVE_HOOKS" = 1 ] && [ -x "$HOME_DIR/bin/cv-hook" ]; then
   "$HOME_DIR/bin/cv-hook" remove-codex || true
 fi
 

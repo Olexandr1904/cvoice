@@ -101,10 +101,15 @@ if [ "$INSTALL_HOOKS" = 1 ]; then
 fi
 
 # Codex offers one notification slot and it is usually taken, so we chain rather than
-# replace: whatever was there is stored and called first. This is independent of
-# --no-hooks, which only concerns Claude Code's settings.json; a Codex installation
-# is detected on its own (CODEX_HOME) and left alone quietly when there is none.
-"$HOME_DIR/bin/cv-hook" install-codex
+# replace: whatever was there is stored and called first.
+#
+# Gated on --no-hooks like the Claude hooks are. That flag means "do not wire me into
+# anything", and it is what sandboxed test runs rely on: without this gate, a run with
+# CVOICE_HOME pointed at a scratch directory would still reach out and take the real
+# Codex slot.
+if [ "$INSTALL_HOOKS" = 1 ]; then
+  "$HOME_DIR/bin/cv-hook" install-codex
+fi
 
 if [ "$INSTALL_PLUGIN" = 1 ]; then
   PLUGIN_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
