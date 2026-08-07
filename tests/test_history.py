@@ -72,3 +72,30 @@ def test_corrupt_line_does_not_break_reading(tmp_path):
         handle.write("{not json\n")
 
     assert [entry.text for entry in recent(paths)] == ["good"]
+
+
+def test_the_agent_is_stored(tmp_path):
+    paths = _paths(tmp_path)
+
+    entry = add(paths, kind="tldr", label="app", text="Done.", agent="codex")
+
+    assert entry.agent == "codex"
+    assert recent(paths)[0].agent == "codex"
+
+
+def test_the_agent_defaults_to_claude(tmp_path):
+    """Every entry written before this field existed was Claude."""
+    paths = _paths(tmp_path)
+
+    assert add(paths, kind="tldr", label="app", text="Done.").agent == "claude"
+
+
+def test_an_entry_without_an_agent_field_still_loads(tmp_path):
+    import json
+
+    paths = _paths(tmp_path)
+    paths.history_file.write_text(
+        json.dumps({"id": "1", "ts": 1, "kind": "tldr", "label": "app", "text": "old"}) + "\n"
+    )
+
+    assert recent(paths)[0].agent == "claude"

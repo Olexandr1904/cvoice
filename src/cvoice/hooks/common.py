@@ -18,6 +18,7 @@ from typing import Callable, List, Optional
 
 from .. import config as config_module
 from .. import health, history
+from ..agents import CLAUDE, label_for
 from ..i18n import Pack
 from ..i18n import load as load_pack
 from ..queue import Item, enqueue
@@ -35,10 +36,11 @@ class Context:
     project_dir: str
     namespace: str
     session: str
+    agent: str = CLAUDE
 
     @property
     def label(self) -> str:
-        return label(self.project_dir, self.namespace)
+        return label_for(self.agent, label(self.project_dir, self.namespace))
 
 
 def is_child() -> bool:
@@ -59,11 +61,16 @@ def label(project_dir: str, namespace: str) -> str:
     return os.path.basename(project_dir.rstrip("/")) or project_dir
 
 
-def build_context(payload: dict, paths: Optional[Paths] = None) -> Context:
+def build_context(
+    payload: dict,
+    paths: Optional[Paths] = None,
+    agent: str = CLAUDE,
+    project_dir: Optional[str] = None,
+) -> Context:
     paths = paths or Paths.default()
     paths.ensure()
     config = config_module.load(paths)
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    project_dir = project_dir or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     namespace = os.path.basename(os.environ.get("CLAUDE_CONFIG_DIR", ".claude").rstrip("/"))
     mode = config_module.resolve_mode(
         paths,
@@ -80,6 +87,7 @@ def build_context(payload: dict, paths: Optional[Paths] = None) -> Context:
         project_dir=project_dir,
         namespace=namespace,
         session=str(payload.get("session_id", "unknown")),
+        agent=agent,
     )
 
 
@@ -103,6 +111,7 @@ def emit(
         text=text,
         directory=context.project_dir,
         namespace=context.namespace,
+        agent=context.agent,
     )
     context.paths.state_dir.mkdir(parents=True, exist_ok=True)
     (context.paths.state_dir / "last-text").write_text(text)

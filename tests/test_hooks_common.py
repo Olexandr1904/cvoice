@@ -172,3 +172,47 @@ def test_interrupted_playback_is_not_journalled_as_a_failure(tmp_path):
     speaker("hello", Item(priority=1, label="app", session="s", text="hello"))
 
     assert failures(paths) == []
+
+
+def test_the_context_defaults_to_claude(tmp_path, monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", "/work/app")
+
+    context = common.build_context({"session_id": "s"}, paths=Paths(root=tmp_path))
+
+    assert context.agent == "claude"
+    assert context.label == "app"
+
+
+def test_a_codex_context_is_labelled_with_the_agent(tmp_path):
+    context = common.build_context(
+        {"session_id": "s"}, paths=Paths(root=tmp_path), agent="codex", project_dir="/work/app"
+    )
+
+    assert context.label == "Codex, app"
+
+
+def test_an_explicit_project_overrides_the_environment(tmp_path, monkeypatch):
+    """Codex tells us its working directory; there is no CLAUDE_PROJECT_DIR to read."""
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", "/work/wrong")
+
+    context = common.build_context(
+        {"session_id": "s"}, paths=Paths(root=tmp_path), agent="codex", project_dir="/work/right"
+    )
+
+    assert context.project_dir == "/work/right"
+
+
+def test_the_agent_reaches_history(tmp_path):
+    from cvoice.history import recent
+
+    context = common.build_context(
+        {"session_id": "s"},
+        paths=Paths(root=tmp_path),
+        agent="codex",
+        project_dir="/work/app",
+    )
+    context.mode = "notify"
+
+    common.emit(context, kind="tldr", text="Done.", notifier=lambda **kw: None, worker=lambda: None)
+
+    assert recent(context.paths)[0].agent == "codex"

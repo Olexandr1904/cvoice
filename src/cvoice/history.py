@@ -7,6 +7,7 @@ import time
 from dataclasses import asdict, dataclass
 from typing import List, Optional
 
+from .agents import CLAUDE
 from .state import Paths
 
 KEEP_DEFAULT = 200
@@ -23,6 +24,7 @@ class Entry:
     text: str
     directory: str = ""
     namespace: str = ""
+    agent: str = CLAUDE
 
 
 def _new_id() -> str:
@@ -50,6 +52,7 @@ def add(
     text: str,
     directory: str = "",
     namespace: str = "",
+    agent: str = CLAUDE,
     keep: int = KEEP_DEFAULT,
 ) -> Optional[Entry]:
     if kind in EPHEMERAL_KINDS:
@@ -69,6 +72,7 @@ def add(
         text=text,
         directory=directory,
         namespace=namespace,
+        agent=agent,
     )
     lines.append(json.dumps(asdict(entry), ensure_ascii=False))
     paths.history_file.parent.mkdir(parents=True, exist_ok=True)
