@@ -11,8 +11,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
+from pathlib import Path
 from typing import Optional
 
 from .i18n import Pack
@@ -32,6 +35,28 @@ SPOKEN_MAX_CHARS = 320
 # A boundary is punctuation followed by space or end - never the dot in "parser.py".
 _SENTENCE_END = re.compile(r"[.!?\u2026]+(?=\s|$)")
 CHILD_ENV_VAR = "CVOICE_CHILD"
+
+# Where the CLI usually lives. A hook can be run by a desktop app launched from the Dock,
+# whose PATH is only the system directories - the same trap that once made the neural
+# voice look permanently unavailable.
+CLAUDE_LOCATIONS = (
+    "~/.local/bin/claude",
+    "~/.claude/local/claude",
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude",
+)
+
+
+def claude_binary() -> Optional[str]:
+    """Locate the Claude CLI without depending on the caller's PATH."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    for candidate in CLAUDE_LOCATIONS:
+        path = Path(candidate).expanduser()
+        if path.exists():
+            return str(path)
+    return None
 
 
 def strip_markdown(text: str) -> str:
@@ -90,12 +115,16 @@ def run(text: str, pack: Pack, model: str = "sonnet", timeout: int = 120) -> Opt
             "disableBundledSkills": True,
         }
     )
+    binary = claude_binary()
+    if binary is None:
+        return None
+
     env = dict(os.environ, **{CHILD_ENV_VAR: "1"})
     try:
         with tempfile.TemporaryDirectory() as sandbox:
             result = subprocess.run(
                 [
-                    "claude", "-p",
+                    binary, "-p",
                     "--model", model,
                     "--strict-mcp-config",
                     "--mcp-config", '{"mcpServers":{}}',

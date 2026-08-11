@@ -216,3 +216,42 @@ def test_the_agent_reaches_history(tmp_path):
     common.emit(context, kind="tldr", text="Done.", notifier=lambda **kw: None, worker=lambda: None)
 
     assert recent(context.paths)[0].agent == "codex"
+
+
+def test_a_missing_claude_cli_is_recorded_not_swallowed(tmp_path, monkeypatch):
+    """Falling back to a fixed phrase while nobody knows why is the failure mode this
+    whole design exists to avoid."""
+    from cvoice.health import failures
+
+    context = _context(tmp_path)
+    monkeypatch.setattr("cvoice.summarize.run", lambda *a, **kw: None)
+    monkeypatch.setattr("cvoice.summarize.claude_binary", lambda: None)
+
+    spoken = common.summarise(context, "a long reply that needs condensing")
+
+    assert spoken == context.pack.phrase("summary.fallback")
+    assert [failure.component for failure in failures(context.paths)] == ["summariser"]
+
+
+def test_a_working_summariser_clears_the_record(tmp_path, monkeypatch):
+    from cvoice.health import failures, record
+
+    context = _context(tmp_path)
+    record(context.paths, "summariser", "an earlier failure")
+    monkeypatch.setattr("cvoice.summarize.run", lambda *a, **kw: "Done.")
+
+    assert common.summarise(context, "a long reply") == "Done."
+    assert failures(context.paths) == []
+
+
+def test_a_refused_summary_is_not_blamed_on_the_cli(tmp_path, monkeypatch):
+    """The model answering NO_SUMMARY is a judgement, not a fault."""
+    from cvoice.health import failures
+
+    context = _context(tmp_path)
+    monkeypatch.setattr("cvoice.summarize.run", lambda *a, **kw: None)
+    monkeypatch.setattr("cvoice.summarize.claude_binary", lambda: "/found/claude")
+
+    common.summarise(context, "a long reply")
+
+    assert failures(context.paths) == []

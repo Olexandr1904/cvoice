@@ -91,6 +91,25 @@ def build_context(
     )
 
 
+def summarise(context: Context, text: str) -> str:
+    """Condense a reply, and say out loud when that could not be done.
+
+    A summariser that quietly returns nothing is exactly the silent degradation this
+    design exists to avoid: the fixed phrase is spoken, the entry looks fine, and the
+    reason - a missing CLI, a timeout - is invisible. It is recorded instead.
+    """
+    from .. import summarize
+
+    answer = summarize.run(text, context.pack, model=context.config.model)
+    if answer:
+        health.clear(context.paths, component="summariser")
+        return answer
+
+    if summarize.claude_binary() is None:
+        health.record(context.paths, "summariser", "the claude CLI could not be found")
+    return context.pack.phrase("summary.fallback")
+
+
 def emit(
     context: Context,
     kind: str,

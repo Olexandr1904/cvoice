@@ -261,3 +261,47 @@ def test_a_summary_merely_starting_with_no_is_kept(monkeypatch):
     )
 
     assert run("a reply", PACK) == "No tests were run, only docs changed."
+
+
+def test_the_binary_is_found_beside_the_home_directory_when_path_is_empty(monkeypatch, tmp_path):
+    """A hook can be run by a desktop app launched from the Dock, with a system-only PATH."""
+    local = tmp_path / ".local" / "bin"
+    local.mkdir(parents=True)
+    (local / "claude").write_text("#!/bin/sh\n")
+    monkeypatch.setattr(summarize_module.shutil, "which", lambda name: None)
+    monkeypatch.setattr(summarize_module, "CLAUDE_LOCATIONS", (str(local / "claude"),))
+
+    assert summarize_module.claude_binary() == str(local / "claude")
+
+
+def test_path_wins_when_the_binary_is_on_it(monkeypatch):
+    monkeypatch.setattr(summarize_module.shutil, "which", lambda name: "/usr/local/bin/claude")
+
+    assert summarize_module.claude_binary() == "/usr/local/bin/claude"
+
+
+def test_no_binary_anywhere_returns_none(monkeypatch, tmp_path):
+    monkeypatch.setattr(summarize_module.shutil, "which", lambda name: None)
+    monkeypatch.setattr(summarize_module, "CLAUDE_LOCATIONS", (str(tmp_path / "nowhere"),))
+
+    assert summarize_module.claude_binary() is None
+
+
+def test_a_missing_binary_does_not_reach_subprocess(monkeypatch, tmp_path):
+    def explode(*args, **kwargs):
+        raise AssertionError("subprocess must not be called without a binary")
+
+    monkeypatch.setattr(summarize_module, "claude_binary", lambda: None)
+    monkeypatch.setattr(summarize_module.subprocess, "run", explode)
+
+    assert run("a reply", PACK) is None
+
+
+def test_the_located_binary_is_the_one_invoked(monkeypatch):
+    fake = FakeRun()
+    monkeypatch.setattr(summarize_module, "claude_binary", lambda: "/found/claude")
+    monkeypatch.setattr(summarize_module.subprocess, "run", fake)
+
+    run("a reply", PACK)
+
+    assert fake.calls[0][0] == "/found/claude"
