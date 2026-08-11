@@ -248,9 +248,9 @@ def test_a_turn_that_did_nothing_is_not_reported(tmp_path, monkeypatch):
 def test_the_project_comes_from_the_payload(tmp_path, monkeypatch):
     paths = _prepare(tmp_path)
 
-    _run(paths, [_payload(cwd="/work/kaaba")], monkeypatch)
+    _run(paths, [_payload(cwd="/work/billing-api")], monkeypatch)
 
-    assert recent(paths)[0].label == "Codex, kaaba"
+    assert recent(paths)[0].label == "Codex, billing-api"
 
 
 def test_mode_off_reports_nothing(tmp_path, monkeypatch):

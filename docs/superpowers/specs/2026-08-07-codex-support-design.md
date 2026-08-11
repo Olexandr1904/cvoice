@@ -106,7 +106,7 @@ The user hears which agent is speaking **only when it changes**, exactly as proj
 already behave.
 
 This needs no new logic: the agent is folded into the existing label. For Claude the label
-stays `kaaba`; for Codex it becomes `Codex, kaaba`. The speaker already announces a label
+stays `billing-api`; for Codex it becomes `Codex, billing-api`. The speaker already announces a label
 only when it differs from the previous utterance, so switching agents is announced, and a
 run of turns from the same agent in the same project is not.
 

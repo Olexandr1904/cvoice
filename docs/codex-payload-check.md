@@ -12,7 +12,7 @@ A single argument, holding JSON:
   "type": "agent-turn-complete",
   "thread-id": "019fdba2-…",
   "turn-id": "019ff086-…",
-  "cwd": "/Users/…/Documents/Codex/2026-08-07/new-chat",
+  "cwd": "/Users/me/projects/example",
   "client": "Codex Desktop",
   "input-messages": ["…"],
   "last-assistant-message": "…"

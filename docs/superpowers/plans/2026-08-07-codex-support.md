@@ -47,11 +47,11 @@ from cvoice.agents import CLAUDE, CODEX, label_for
 
 def test_claude_is_labelled_by_project_alone():
     """The label people already hear must not change for Claude."""
-    assert label_for(CLAUDE, "kaaba") == "kaaba"
+    assert label_for(CLAUDE, "billing-api") == "billing-api"
 
 
 def test_codex_is_named_in_the_label():
-    assert label_for(CODEX, "kaaba") == "Codex, kaaba"
+    assert label_for(CODEX, "billing-api") == "Codex, billing-api"
 
 
 def test_a_missing_project_still_names_the_agent():
@@ -64,7 +64,7 @@ def test_a_missing_project_for_claude_is_empty():
 
 def test_an_unknown_agent_is_treated_as_claude():
     """Old history entries have no agent field; they were all Claude."""
-    assert label_for("", "kaaba") == "kaaba"
+    assert label_for("", "billing-api") == "billing-api"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1152,9 +1152,9 @@ def test_a_turn_that_did_nothing_is_not_reported(tmp_path, monkeypatch):
 def test_the_project_comes_from_the_payload(tmp_path, monkeypatch):
     paths = _prepare(tmp_path)
 
-    _run(paths, [_payload(cwd="/work/kaaba")], monkeypatch)
+    _run(paths, [_payload(cwd="/work/billing-api")], monkeypatch)
 
-    assert recent(paths)[0].label == "Codex, kaaba"
+    assert recent(paths)[0].label == "Codex, billing-api"
 
 
 def test_mode_off_reports_nothing(tmp_path, monkeypatch):
