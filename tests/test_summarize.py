@@ -1,8 +1,22 @@
+import pytest
+
 import cvoice.summarize as summarize_module
 from cvoice.i18n import load
 from cvoice.summarize import run
 
 PACK = load("en")
+
+
+@pytest.fixture(autouse=True)
+def _pretend_the_cli_exists(monkeypatch):
+    """These tests are about the arguments we build, not about the machine they run on.
+
+    CI has no Claude CLI, and without this the missing-binary guard short-circuits before
+    the mocked subprocess is ever reached. Tests that are about locating the binary patch
+    it themselves and override this.
+    """
+    monkeypatch.setattr(summarize_module, "claude_binary", lambda: "/fake/claude")
+
 
 
 class FakeRun:
@@ -265,6 +279,7 @@ def test_a_summary_merely_starting_with_no_is_kept(monkeypatch):
 
 def test_the_binary_is_found_beside_the_home_directory_when_path_is_empty(monkeypatch, tmp_path):
     """A hook can be run by a desktop app launched from the Dock, with a system-only PATH."""
+    monkeypatch.undo()  # this test is about the lookup itself
     local = tmp_path / ".local" / "bin"
     local.mkdir(parents=True)
     (local / "claude").write_text("#!/bin/sh\n")
@@ -275,12 +290,14 @@ def test_the_binary_is_found_beside_the_home_directory_when_path_is_empty(monkey
 
 
 def test_path_wins_when_the_binary_is_on_it(monkeypatch):
+    monkeypatch.undo()  # this test is about the lookup itself
     monkeypatch.setattr(summarize_module.shutil, "which", lambda name: "/usr/local/bin/claude")
 
     assert summarize_module.claude_binary() == "/usr/local/bin/claude"
 
 
 def test_no_binary_anywhere_returns_none(monkeypatch, tmp_path):
+    monkeypatch.undo()  # this test is about the lookup itself
     monkeypatch.setattr(summarize_module.shutil, "which", lambda name: None)
     monkeypatch.setattr(summarize_module, "CLAUDE_LOCATIONS", (str(tmp_path / "nowhere"),))
 

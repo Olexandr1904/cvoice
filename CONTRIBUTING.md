@@ -25,3 +25,8 @@ fails CI rather than shipping silently broken.
 - English only: code, comments, docstrings, commit messages.
 - Every component degrades through the fallback chain instead of raising at the user;
   record failures via `cvoice.health` rather than printing a traceback.
+
+No test may depend on what happens to be installed on the machine running it. CI has no
+Claude CLI and no `edge-tts`, so anything that shells out is stubbed — including the
+lookup that finds those binaries, not just the call itself. A test that passes locally and
+fails on CI is usually this.
