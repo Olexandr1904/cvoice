@@ -153,3 +153,20 @@ def test_an_absent_codex_is_not_reported_at_all(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "nowhere"))
 
     assert "codex" not in {check.name for check in checks(_paths(tmp_path), Config())}
+
+
+def test_a_slot_reclaimed_by_codex_still_counts_as_installed(tmp_path, monkeypatch):
+    """Codex takes the slot back but keeps us in --previous-notify, so we still run."""
+    import json as _json
+
+    _all_present(monkeypatch)
+    monkeypatch.setattr(doctor_module, "hook_check", lambda: [])
+    reclaimed = _json.dumps(
+        ["/Applications/Codex.app/Client", "turn-ended", "--previous-notify",
+         _json.dumps(["/x/cv-hook", "hook", "codex"])]
+    )
+    monkeypatch.setenv("CODEX_HOME", str(_codex(tmp_path, reclaimed)))
+
+    results = {check.name: check for check in checks(_paths(tmp_path), Config())}
+
+    assert results["codex"].ok is True

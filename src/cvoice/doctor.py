@@ -137,7 +137,9 @@ def checks(paths: Paths, config: Config) -> List[Check]:
     codex_config = codex_config_path()
     if codex_installed(codex_config):
         notify = read_notify(codex_config)
-        installed = bool(notify) and "cv-hook" in notify[0]
+        # Codex hands the slot back to its own client but keeps us reachable through
+        # `--previous-notify`, so being at position 0 is not what makes this work.
+        installed = any("cv-hook" in argument for argument in notify)
         results.append(
             Check(
                 name="codex",

@@ -121,7 +121,15 @@ from .state import Paths
 
 
 def _is_ours(command: List[str]) -> bool:
-    return bool(command) and SHIM_MARKER in command[0]
+    """Does this command reach our shim at all - directly or through a chain?
+
+    Codex Desktop reclaims the notify slot for its own client and preserves whatever it
+    displaced by passing it back as `--previous-notify <json>`. So after it takes the
+    slot our shim is still called, but from inside that argument rather than at
+    position 0. Storing such a command as "the original" would have us call Codex, which
+    calls us, which calls Codex: an endless loop.
+    """
+    return any(SHIM_MARKER in argument for argument in command)
 
 
 def install_codex(codex_config: Path, paths: Paths, shim: str) -> bool:

@@ -1,60 +1,58 @@
-# Confirming Codex's notify payload
+# Codex's notify payload — confirmed
 
-Plan task 13. This is the one thing tests cannot settle: the exact arguments Codex passes
-to its `notify` program were never observed directly, so the parser scans every argument
-for JSON rather than reading a fixed position. One real turn confirms the shape.
+Plan task 13, settled against a real turn on 2026-08-11. Nothing in the parser needed
+changing; this note records what was observed, and the one surprise that did need a fix.
 
-**Currently armed.** `notify` points at `/tmp/record-notify.sh`, which writes down what it
-receives and then hands over to Codex Computer Use, so nothing is lost while this is in
-place. The original config is backed up at `/tmp/codex-config-backup.toml`.
+## The payload
 
-## 1. Run one turn in Codex
+A single argument, holding JSON:
 
-Anything that takes a moment and finishes. Then:
-
-```bash
-cat /tmp/cvoice-codex-payload.log
+```json
+{
+  "type": "agent-turn-complete",
+  "thread-id": "019fdba2-…",
+  "turn-id": "019ff086-…",
+  "cwd": "/Users/…/Documents/Codex/2026-08-07/new-chat",
+  "client": "Codex Desktop",
+  "input-messages": ["…"],
+  "last-assistant-message": "…"
+}
 ```
 
-Expect one `argv[N]:` line per argument. One of them should be JSON carrying the final
-message.
+Every key the hook looks for was present and first in its list of accepted spellings:
+`last-assistant-message`, `turn-id`, `cwd`. The parser scans all arguments rather than a
+fixed position, which turned out to be unnecessary here but costs nothing and still covers
+a future change.
 
-## 2. Hand the log back
+## The surprise: Codex chains too
 
-Paste it, or just say it is there — the log is read and acted on from the cvoice session.
+Codex Desktop does not simply overwrite a foreign `notify`. It takes the slot back for its
+own client and preserves what it displaced:
 
-What is being checked:
-
-- **Is there JSON at all**, and in which argument. Position does not matter to the parser;
-  this is only to confirm it exists.
-- **Which key holds the message.** The parser accepts `last-assistant-message`,
-  `last_agent_message` and `message`. Anything else needs adding to `MESSAGE_KEYS` in
-  `src/cvoice/hooks/codex.py`, with a test.
-- **Is there a turn id**, under `turn-id` or `turn_id`. Without one, a turn reported twice
-  would be spoken twice.
-- **Is there a working directory** (`cwd`, `workdir`, `working-directory`). Without it the
-  project name falls back to the process's own directory, which for a desktop app is not
-  the project.
-
-## 3. Put cvoice in the slot
-
-```bash
-~/.cvoice/bin/cv-hook install-codex
-~/.cvoice/bin/cv-hook doctor | grep codex
+```
+notify = ["…/SkyComputerUseClient", "turn-ended",
+          "--previous-notify", "[\"/previous/command\"]"]
 ```
 
-Then run one more turn in Codex and check it arrived:
+The displaced command is then still called — confirmed by timestamps: the slot was
+reclaimed at 14:00:41 and the displaced program was called seven times afterwards.
 
-```bash
-~/.cvoice/bin/cv-hook history | tail -3
+Two consequences, both now handled:
+
+- **A reclaimed slot must never be stored as "the original".** Our shim then sits inside
+  `--previous-notify`, so a second install would store a command that calls us, and our
+  chain would call it: an endless loop. `_is_ours` therefore looks for the shim anywhere in
+  the command, not just at position 0.
+- **A reclaimed slot is not a fault.** We are still reached through Codex's own chain, so
+  `doctor` reports it as installed rather than crying wolf.
+
+## Re-checking later
+
+If Codex changes its payload, the symptom is silence from Codex turns while Claude keeps
+working. To look again, point the slot at a recorder that hands over to the real target:
+
+```sh
+#!/bin/sh
+printf '%s\n' "$@" >> /tmp/notify.log
+exec "$(the real notify program)" "$@"
 ```
-
-The newest entry should read `Codex, <project>`.
-
-## If you want to stop half way
-
-```bash
-cp /tmp/codex-config-backup.toml ~/.codex/config.toml
-```
-
-That restores Computer Use exactly as it was, with cvoice out of the picture.

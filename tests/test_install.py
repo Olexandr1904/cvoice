@@ -280,3 +280,38 @@ def test_removal_leaves_someone_elses_slot_alone(tmp_path):
     remove_codex(config, paths)
 
     assert read_notify(config) == ["/opt/thing", "turn-ended"]
+
+
+def _reclaimed(shim):
+    """What Codex writes after taking its slot back: its own client, with whatever it
+    displaced preserved as `--previous-notify`."""
+    import json as _json
+
+    return [
+        "/Applications/Codex.app/SkyComputerUseClient",
+        "turn-ended",
+        "--previous-notify",
+        _json.dumps([shim, "hook", "codex"]),
+    ]
+
+
+def test_a_reclaimed_slot_is_not_stored_as_the_original(tmp_path):
+    """Otherwise our chain calls Codex, which calls us, which calls Codex."""
+    import json as _json
+
+    paths = _home(tmp_path)
+    config = _codex_config(tmp_path)
+    install_codex(config, paths, shim="/shim/cv-hook")
+    config.write_text(f"notify = {_json.dumps(_reclaimed('/shim/cv-hook'))}\n")
+
+    install_codex(config, paths, shim="/shim/cv-hook")
+
+    assert load(paths).codex_original_notify == ["/opt/thing", "turn-ended"]
+
+
+def test_a_command_mentioning_our_shim_anywhere_is_recognised():
+    from cvoice.install import _is_ours
+
+    assert _is_ours(_reclaimed("/shim/cv-hook")) is True
+    assert _is_ours(["/opt/thing", "turn-ended"]) is False
+    assert _is_ours([]) is False
