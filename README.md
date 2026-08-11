@@ -1,11 +1,14 @@
 # cvoice
 
-Claude Code tells you when it needs you.
+Claude Code and Codex tell you when they need you.
 
 You start a long task, switch to the browser, and then keep checking the terminal to see
-whether it finished or is quietly waiting for an answer. `cvoice` removes the
-checking: a banner when it asks something, a spoken one-line summary when a turn ends, and
-a menu-bar item that keeps everything it said so you can hear it again later.
+whether it finished or is quietly waiting for an answer. `cvoice` removes the checking: a
+banner when it asks something, a spoken one-line summary when a turn ends, and a menu-bar
+item that keeps everything it said so you can hear it again later.
+
+Both agents report into the same history and the same queue, so they never talk over each
+other, and you hear which one is speaking only when it changes.
 
 **macOS only.** It builds on `say`, `afplay`, `terminal-notifier` and SwiftBar.
 
@@ -20,7 +23,8 @@ Install cvoice from https://github.com/Olexandr1904/cvoice on this Mac: clone it
 ~/Documents. Ask me which language it should speak and wait for my answer - the installer's
 own question needs a terminal, so pass my answer as ./install.sh --language <answer>.
 Then run ~/.cvoice/bin/cv-hook doctor: a Focus warning is expected and not a fault, fix
-anything else. Finish by telling me the one alias to add to my shell.
+anything else. It wires up Codex too if it finds it. Finish by telling me the one alias to
+add to my shell.
 ```
 
 Or by hand:
@@ -43,12 +47,15 @@ wires the hooks into every Claude Code config directory it finds, backing up eac
 
 ## What it does
 
-| When | What you get |
-| --- | --- |
-| Claude asks a question or presents a plan | The question itself, immediately |
-| A turn ends | A one or two sentence summary — what was done, what matters next |
-| It is waiting for a permission decision | Which tool it is blocked on |
-| You start typing again | Whatever it still wanted to say is dropped |
+| When | What you get | Claude | Codex |
+| --- | --- | :-: | :-: |
+| A turn ends | A one or two sentence summary — what was done, what matters next | ● | ● |
+| It asks a question or presents a plan | The question itself, immediately | ● | |
+| It is waiting for a permission decision | Which tool it is blocked on | ● | |
+| You start typing again | Whatever it still wanted to say is dropped | ● | |
+
+Codex surfaces only the end of a turn as an event, so that is what is reported for it. The
+rest is not guesswork waiting to happen — see [Codex](#codex).
 
 It does not read the reply out loud. A forty-line answer full of code and file paths is
 unlistenable, so a second, cheap Claude call condenses it first. Short replies already in
@@ -163,8 +170,9 @@ ship half-translated.
 ## How it works
 
 Claude Code hooks (`PreToolUse`, `Stop`, `Notification`, `UserPromptSubmit`) call a
-three-line shim that runs the Python package. Hooks return control immediately; the
-summarizer runs detached, so the session never waits.
+three-line shim that runs the Python package. Codex reaches the same shim through its
+`notify` setting. Hooks return control immediately; the summarizer runs detached, so the
+session never waits.
 
 Speech goes through one machine-wide lock, so several Claude aliases and parallel sessions
 never talk over each other, and questions jump ahead of summaries. Everything reported is
