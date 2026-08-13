@@ -255,3 +255,50 @@ def test_a_refused_summary_is_not_blamed_on_the_cli(tmp_path, monkeypatch):
     common.summarise(context, "a long reply")
 
     assert failures(context.paths) == []
+
+
+def test_speaking_a_message_marks_it_read(tmp_path):
+    """Hearing something is reading it. Otherwise every spoken summary piles up unread."""
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+    said = []
+    speaker = common.make_speaker(paths, engines=[], sink=said.append)
+
+    speaker("hello", Item(priority=1, label="app", session="s", text="hello", history_id="0002"))
+
+    assert paths.seen_file.read_text().strip() == "0002"
+
+
+def test_the_read_marker_only_moves_forward(tmp_path):
+    """Replaying an old entry must not bury everything newer under it."""
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+    paths.seen_file.parent.mkdir(parents=True, exist_ok=True)
+    paths.seen_file.write_text("0009")
+    speaker = common.make_speaker(paths, engines=[], sink=lambda text: None)
+
+    speaker("old", Item(priority=0, label="app", session="s", text="old", history_id="0002"))
+
+    assert paths.seen_file.read_text().strip() == "0009"
+
+
+def test_an_item_without_a_history_id_changes_nothing(tmp_path):
+    """`cvoice speak` is not a reported message and has no entry to mark."""
+    paths = Paths(root=tmp_path)
+    paths.ensure()
+    speaker = common.make_speaker(paths, engines=[], sink=lambda text: None)
+
+    speaker("hello", Item(priority=0, label="", session="cli", text="hello"))
+
+    assert not paths.seen_file.exists()
+
+
+def test_an_emitted_message_carries_its_history_id(tmp_path):
+    from cvoice.history import recent
+    from cvoice.queue import pending, read_item
+
+    context = _context(tmp_path, mode="voice")
+
+    common.emit(context, kind="tldr", text="All done.", notifier=lambda **kw: None, worker=lambda: None)
+
+    assert read_item(pending(context.paths)[0]).history_id == recent(context.paths)[0].id

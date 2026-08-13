@@ -29,6 +29,7 @@ class Item:
     session: str
     text: str
     flags: str = ""  # "force" speaks even while paused
+    history_id: str = ""  # the entry this came from, so speaking it marks it read
 
 
 def enqueue(paths: Paths, item: Item) -> Optional[Path]:

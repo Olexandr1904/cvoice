@@ -113,6 +113,10 @@ The counter matters more than it looks: macOS Focus suppresses banners entirely 
 delivered, they just never appear — and Focus is usually on exactly when you are in a call.
 The menu bar is not suppressed, so the signal survives.
 
+It counts what you have not received, not what you have not clicked: anything spoken aloud
+marks itself read as it is said. What remains is what arrived while you were paused, in a
+call, or in banner-only mode — the things you genuinely have not caught up on.
+
 ## Codex
 
 Codex is supported alongside Claude Code, for end-of-turn summaries. It offers a single

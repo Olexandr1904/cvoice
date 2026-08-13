@@ -123,7 +123,7 @@ def emit(
     if not text.strip():
         return
 
-    history.add(
+    entry = history.add(
         context.paths,
         kind=kind,
         label=context.label,
@@ -143,7 +143,16 @@ def emit(
             health.record(context.paths, "notify", str(error))
 
     if context.mode in ("voice", "both"):
-        enqueue(context.paths, Item(priority=priority, label=context.label, session=context.session, text=text))
+        enqueue(
+            context.paths,
+            Item(
+                priority=priority,
+                label=context.label,
+                session=context.session,
+                text=text,
+                history_id=entry.id if entry else "",
+            ),
+        )
         (worker or spawn_worker)()
 
 
@@ -151,6 +160,25 @@ def _default_notifier(title: str, body: str, group: str) -> None:
     from ..notify.macos import send
 
     send(title=title, body=body, group=group)
+
+
+def mark_heard(paths: Paths, history_id: str) -> None:
+    """Move the read marker forward once a message has actually been spoken.
+
+    Hearing something is reading it. Without this the counter only ever fell when the
+    user clicked "mark as read", so a week of spoken summaries piled up as unread.
+
+    Only ever forward: replaying an old entry must not bury everything newer.
+    """
+    if not history_id:
+        return
+    try:
+        seen = paths.seen_file.read_text().strip()
+    except FileNotFoundError:
+        seen = ""
+    if history_id > seen:
+        paths.seen_file.parent.mkdir(parents=True, exist_ok=True)
+        paths.seen_file.write_text(history_id)
 
 
 def make_speaker(paths: Paths, engines: List[object], sink: Optional[Callable[[str], None]] = None):
@@ -169,6 +197,10 @@ def make_speaker(paths: Paths, engines: List[object], sink: Optional[Callable[[s
         spoken = f"{item.label}. {text}" if item.label and item.label != last else text
         paths.last_label_file.parent.mkdir(parents=True, exist_ok=True)
         paths.last_label_file.write_text(item.label)
+
+        # Marked here rather than after the engines: this is the moment the message is
+        # delivered to the person, whichever path carries it.
+        mark_heard(paths, item.history_id)
 
         if sink is not None:
             sink(spoken)
