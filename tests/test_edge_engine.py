@@ -6,9 +6,10 @@ from cvoice.speech.edge import EdgeEngine
 class FakeRunner:
     """Stands in for both edge-tts and afplay. No network is ever touched in tests."""
 
-    def __init__(self, synth_ok=True, play_ok=True):
+    def __init__(self, synth_ok=True, play_ok=True, synth_stderr="network unreachable"):
         self.synth_ok = synth_ok
         self.play_ok = play_ok
+        self.synth_stderr = synth_stderr
         self.synth_calls = 0
         self.played = []
 
@@ -26,7 +27,7 @@ class FakeRunner:
                 with open(target, "wb") as handle:
                     handle.write(b"fake mp3")
             else:
-                result.stderr = "network unreachable"
+                result.stderr = self.synth_stderr
         else:
             self.played.append(argv[-1])
             result.returncode = 0 if self.play_ok else 1
@@ -89,6 +90,28 @@ def test_synthesis_failure_raises_and_leaves_no_partial_file(monkeypatch, tmp_pa
         raise AssertionError("expected SpeechError")
 
     assert list((tmp_path / "cache").glob("*")) == []
+
+
+def test_synthesis_failure_reports_the_exception_not_the_traceback_head(monkeypatch, tmp_path):
+    """health.json keeps 200 characters, and the head of a traceback names no cause."""
+    traceback = (
+        "Traceback (most recent call last):\n"
+        '  File "/venv/lib/python3.10/site-packages/edge_tts/communicate.py", line 588, in stream\n'
+        "    async for message in self.__stream():\n"
+        "aiohttp.client_exceptions.WSServerHandshakeError: 403, message='Invalid response status'\n"
+    )
+    monkeypatch.setattr(
+        edge_module.subprocess, "run", FakeRunner(synth_ok=False, synth_stderr=traceback)
+    )
+
+    try:
+        _engine(tmp_path).speak("Готово")
+    except SpeechError as error:
+        assert str(error) == (
+            "aiohttp.client_exceptions.WSServerHandshakeError: 403, message='Invalid response status'"
+        )
+    else:
+        raise AssertionError("expected SpeechError")
 
 
 def test_binary_is_found_next_to_the_interpreter_when_path_is_empty(monkeypatch, tmp_path):

@@ -59,7 +59,10 @@ class EdgeEngine:
         )
         if result.returncode != 0 or not partial.exists() or partial.stat().st_size == 0:
             partial.unlink(missing_ok=True)
-            raise SpeechError(result.stderr.strip() or "edge-tts produced no audio")
+            # edge-tts reports failures as a Python traceback. The cause is its last line;
+            # the first ones are all the 200-character health journal would keep.
+            lines = result.stderr.strip().splitlines()
+            raise SpeechError(lines[-1] if lines else "edge-tts produced no audio")
         partial.rename(target)
 
     def speak(self, text: str) -> None:
