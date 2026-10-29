@@ -141,6 +141,8 @@ def emit(
             send(title=f"{context.label}", body=banner or text, group=f"cvoice-{context.session}")
         except Exception as error:  # noqa: BLE001
             health.record(context.paths, "notify", str(error))
+        else:
+            health.clear(context.paths, component="notify")
 
     if context.mode in ("voice", "both"):
         enqueue(

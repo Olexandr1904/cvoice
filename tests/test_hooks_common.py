@@ -116,6 +116,18 @@ def test_emit_records_a_notifier_failure_in_health(tmp_path):
     assert [failure.component for failure in failures(context.paths)] == ["notify"]
 
 
+def test_a_delivered_banner_clears_an_earlier_notifier_failure(tmp_path):
+    """Otherwise the menu bar warns about banners long after they work again."""
+    from cvoice.health import failures, record
+
+    context = _context(tmp_path, mode="notify")
+    record(context.paths, "notify", "Notifications are not allowed for this application")
+
+    common.emit(context, kind="tldr", text="All done.", notifier=lambda **kwargs: None, worker=lambda: None)
+
+    assert failures(context.paths) == []
+
+
 def test_speaker_announces_the_project_only_when_it_changes(tmp_path):
     paths = Paths(root=tmp_path)
     paths.ensure()
@@ -302,3 +314,4 @@ def test_an_emitted_message_carries_its_history_id(tmp_path):
     common.emit(context, kind="tldr", text="All done.", notifier=lambda **kw: None, worker=lambda: None)
 
     assert read_item(pending(context.paths)[0]).history_id == recent(context.paths)[0].id
+
