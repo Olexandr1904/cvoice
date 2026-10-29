@@ -303,3 +303,13 @@ def test_remove_codex_restores_the_slot(tmp_path, monkeypatch):
 
     assert cli.main(["remove-codex"]) == 0
     assert read_notify(codex_home / "config.toml") == ["/opt/thing"]
+
+
+def test_focus_subcommand_hands_bundle_and_tty_to_the_notifier(tmp_path, monkeypatch):
+    _home(tmp_path, monkeypatch)
+    called = []
+    monkeypatch.setattr(cli.macos_notify, "focus", lambda bundle, tty: called.append((bundle, tty)))
+
+    assert cli.main(["focus", "com.apple.Terminal", "ttys001"]) == 0
+    assert cli.main(["focus", "com.googlecode.iterm2"]) == 0
+    assert called == [("com.apple.Terminal", "ttys001"), ("com.googlecode.iterm2", None)]

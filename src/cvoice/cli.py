@@ -17,6 +17,7 @@ from .hooks import notification as notification_hook
 from .hooks import prompt_submit as prompt_submit_hook
 from .hooks import question as question_hook
 from .hooks import stop as stop_hook
+from .notify import macos as macos_notify
 from .queue import Item, drain, enqueue, pending
 from .state import Paths, clear_snooze, set_snooze, snoozed_until
 
@@ -135,6 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("shut")
     sub.add_parser("doctor")
     sub.add_parser("menubar")
+    focus = sub.add_parser("focus")
+    focus.add_argument("bundle")
+    focus.add_argument("tty", nargs="?")
 
     speak = sub.add_parser("speak")
     speak.add_argument("text", nargs="+")
@@ -180,6 +184,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not args.command:
         parser.print_help()
         return 2
+
+    if args.command == "focus":
+        # A banner click; nothing here needs the state directory or the config.
+        macos_notify.focus(args.bundle, args.tty)
+        return 0
 
     paths = Paths.default()
     paths.ensure()

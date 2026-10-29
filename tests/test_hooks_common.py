@@ -315,3 +315,84 @@ def test_an_emitted_message_carries_its_history_id(tmp_path):
 
     assert read_item(pending(context.paths)[0]).history_id == recent(context.paths)[0].id
 
+
+class FakePs:
+    """Stands in for `ps -Ao pid=,ppid=,tty=`."""
+
+    def __init__(self, table):
+        self.table = table
+
+    def __call__(self, argv, **kwargs):
+        class Result:
+            returncode = 0
+            stdout = "\n".join(f"{pid} {ppid} {tty}" for pid, ppid, tty in self.table)
+
+        return Result()
+
+
+def test_session_tty_walks_up_to_the_first_ancestor_with_a_terminal(monkeypatch):
+    # hook (no tty) <- shell (no tty) <- claude (ttys001) <- login shell (ttys001)
+    monkeypatch.setattr(common.os, "getpid", lambda: 500)
+    monkeypatch.setattr(
+        common.subprocess,
+        "run",
+        FakePs([(500, 400, "??"), (400, 300, "??"), (300, 200, "ttys001"), (200, 1, "ttys001"), (900, 1, "ttys009")]),
+    )
+
+    assert common.session_tty() == "ttys001"
+
+
+def test_session_tty_is_none_outside_a_terminal(monkeypatch):
+    monkeypatch.setattr(common.os, "getpid", lambda: 500)
+    monkeypatch.setattr(common.subprocess, "run", FakePs([(500, 400, "??"), (400, 1, "??")]))
+
+    assert common.session_tty() is None
+
+
+def test_session_tty_rejects_anything_that_is_not_a_tty_name(monkeypatch):
+    monkeypatch.setattr(common.os, "getpid", lambda: 500)
+    monkeypatch.setattr(common.subprocess, "run", FakePs([(500, 1, "console")]))
+
+    assert common.session_tty() is None
+
+
+def test_detach_carries_the_session_tty_into_the_payload(monkeypatch):
+    """The detached process is reparented at once, so it can no longer find the tty."""
+    spawned = {}
+
+    def fake_popen(argv, **kwargs):
+        spawned["argv"] = argv
+
+    monkeypatch.setattr(common, "session_tty", lambda: "ttys007")
+    monkeypatch.setattr(common.subprocess, "Popen", fake_popen)
+
+    common.detach("stop", {"session_id": "abc"})
+
+    payload_path = spawned["argv"][spawned["argv"].index("--payload") + 1]
+    assert json.loads(open(payload_path).read())["cvoice_tty"] == "ttys007"
+
+
+def test_build_context_prefers_the_tty_carried_in_the_payload(tmp_path, monkeypatch):
+    monkeypatch.setattr(common, "session_tty", lambda: None)
+
+    context = common.build_context({"session_id": "s1", "cvoice_tty": "ttys007"}, paths=Paths(root=tmp_path))
+
+    assert context.tty == "ttys007"
+
+
+def test_build_context_ignores_a_malformed_tty_in_the_payload(tmp_path, monkeypatch):
+    monkeypatch.setattr(common, "session_tty", lambda: "ttys001")
+
+    context = common.build_context({"session_id": "s1", "cvoice_tty": "ttys1; rm"}, paths=Paths(root=tmp_path))
+
+    assert context.tty == "ttys001"
+
+
+def test_emit_passes_the_session_tty_to_the_notifier(tmp_path):
+    context = _context(tmp_path, mode="notify")
+    context.tty = "ttys003"
+    sent = []
+
+    common.emit(context, kind="tldr", text="All done.", notifier=lambda **kwargs: sent.append(kwargs), worker=lambda: None)
+
+    assert sent[0]["tty"] == "ttys003"

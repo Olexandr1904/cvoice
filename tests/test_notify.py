@@ -1,3 +1,4 @@
+import sys
 from urllib.parse import unquote, urlsplit
 
 import pytest
@@ -186,9 +187,34 @@ def test_swiftbar_click_returns_to_the_terminal(monkeypatch):
     send("my-project", "Готово, усе зелене", group="g1")
 
     action = _click_action(_query(_swiftbar_url(run)))
-    assert action["bash"] == "/usr/bin/open"
-    assert (action["param1"], action["param2"]) == ("-b", "com.googlecode.iterm2")
+    assert action["bash"] == sys.executable
+    assert [action[f"param{n}"] for n in range(1, 5)] == ["-m", "cvoice.cli", "focus", "com.googlecode.iterm2"]
+    assert "param5" not in action
     assert action["terminal"] == "false"
+
+
+def test_swiftbar_click_names_the_sessions_tab(monkeypatch):
+    run = FakeRun()
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    monkeypatch.setattr(notify_module, "swiftbar_plugin_installed", lambda: True, raising=False)
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    send("my-project", "Готово", group="g1", tty="ttys001")
+
+    action = _click_action(_query(_swiftbar_url(run)))
+    assert [action[f"param{n}"] for n in range(3, 6)] == ["focus", "com.apple.Terminal", "ttys001"]
+
+
+def test_a_malformed_tty_never_reaches_the_click_action(monkeypatch):
+    run = FakeRun()
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    monkeypatch.setattr(notify_module, "swiftbar_plugin_installed", lambda: True, raising=False)
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    send("my-project", "Готово", group="g1", tty="ttys1 bash=/bin/sh")
+
+    action = _click_action(_query(_swiftbar_url(run)))
+    assert "param5" not in action and action["bash"] == sys.executable
 
 
 @pytest.mark.parametrize("term_program", ["iTerm.app", "something-else"])
@@ -207,8 +233,8 @@ def test_message_text_cannot_become_a_swiftbar_click_action(monkeypatch, term_pr
     for order in (query, list(reversed(query))):
         action = _click_action(order)
         assert "href" not in action
-        assert action.get("bash") in (None, "/usr/bin/open")
-        assert action.get("param1") in (None, "-b")
+        assert action.get("bash") in (None, sys.executable)
+        assert action.get("param1") in (None, "-m")
 
 
 def test_plus_signs_survive_swiftbar(monkeypatch):
@@ -265,3 +291,67 @@ def test_no_swiftbar_preferences_means_no_swiftbar(monkeypatch, tmp_path):
 
     assert notify_module.swiftbar_plugin_installed() is False
 
+
+class FakeFocusRun:
+    """osascript answers with a canned result; open always succeeds."""
+
+    def __init__(self, osascript_rc=0, osascript_out="found"):
+        self.osascript_rc = osascript_rc
+        self.osascript_out = osascript_out
+        self.calls = []
+
+    def __call__(self, argv, **kwargs):
+        self.calls.append(argv)
+
+        class Result:
+            pass
+
+        result = Result()
+        result.returncode = self.osascript_rc if argv[0] == "osascript" else 0
+        result.stdout = self.osascript_out if argv[0] == "osascript" else ""
+        result.stderr = ""
+        return result
+
+
+def test_focus_selects_the_tab_by_its_tty(monkeypatch):
+    run = FakeFocusRun()
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    notify_module.focus("com.apple.Terminal", "ttys001")
+
+    assert len(run.calls) == 1
+    argv = run.calls[0]
+    assert argv[0] == "osascript" and argv[-1] == "ttys001"
+    # The tty travels as an argument, never spliced into the script text.
+    assert all("ttys001" not in part for part in argv[:-1])
+
+
+def test_focus_activates_the_app_when_the_tab_is_gone(monkeypatch):
+    run = FakeFocusRun(osascript_out="missing")
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    notify_module.focus("com.apple.Terminal", "ttys001")
+
+    assert run.calls[-1] == ["open", "-b", "com.apple.Terminal"]
+
+
+def test_focus_activates_the_app_when_automation_is_denied(monkeypatch):
+    run = FakeFocusRun(osascript_rc=1, osascript_out="")
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    notify_module.focus("com.apple.Terminal", "ttys001")
+
+    assert run.calls[-1] == ["open", "-b", "com.apple.Terminal"]
+
+
+@pytest.mark.parametrize(
+    "bundle, tty",
+    [("com.googlecode.iterm2", "ttys001"), ("com.apple.Terminal", None), ("com.apple.Terminal", "ttys1; beep")],
+)
+def test_focus_only_activates_the_app_without_a_usable_terminal_tab(monkeypatch, bundle, tty):
+    run = FakeFocusRun()
+    monkeypatch.setattr(notify_module.subprocess, "run", run)
+
+    notify_module.focus(bundle, tty)
+
+    assert run.calls == [["open", "-b", bundle]]

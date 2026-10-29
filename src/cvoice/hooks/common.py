@@ -21,6 +21,7 @@ from .. import health, history
 from ..agents import CLAUDE, label_for
 from ..i18n import Pack
 from ..i18n import load as load_pack
+from ..notify.macos import valid_tty
 from ..queue import Item, enqueue
 from ..speech.base import speak_with_fallback
 from ..state import Paths, snoozed_until
@@ -37,6 +38,8 @@ class Context:
     namespace: str
     session: str
     agent: str = CLAUDE
+    # The terminal the session runs in, so a banner click can bring back that very tab.
+    tty: Optional[str] = None
 
     @property
     def label(self) -> str:
@@ -46,6 +49,33 @@ class Context:
 def is_child() -> bool:
     """True inside our own summarizer invocation, where every hook must do nothing."""
     return os.environ.get(CHILD_ENV_VAR) == "1"
+
+
+# detach() records the tty here: the detached process is reparented at once and can no
+# longer find it by walking up its ancestors.
+TTY_KEY = "cvoice_tty"
+
+
+def session_tty() -> Optional[str]:
+    """The tty of the nearest ancestor that has one - the agent's own terminal."""
+    try:
+        result = subprocess.run(["ps", "-Ao", "pid=,ppid=,tty="], capture_output=True, text=True)
+    except Exception:  # noqa: BLE001 - finding the tab is a nicety; it must never stop a hook
+        return None
+    parents, ttys = {}, {}
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if len(fields) == 3 and fields[0].isdigit() and fields[1].isdigit():
+            parents[int(fields[0])] = int(fields[1])
+            ttys[int(fields[0])] = fields[2]
+    pid, seen = os.getpid(), set()
+    while pid in parents and pid not in seen:
+        seen.add(pid)
+        tty = valid_tty(ttys[pid])
+        if tty:
+            return tty
+        pid = parents[pid]
+    return None
 
 
 def read_payload(source: Optional[Path]) -> dict:
@@ -88,6 +118,7 @@ def build_context(
         namespace=namespace,
         session=str(payload.get("session_id", "unknown")),
         agent=agent,
+        tty=valid_tty(payload.get(TTY_KEY)) or session_tty(),
     )
 
 
@@ -138,7 +169,7 @@ def emit(
     if context.mode in ("notify", "both"):
         send = notifier or _default_notifier
         try:
-            send(title=f"{context.label}", body=banner or text, group=f"cvoice-{context.session}")
+            send(title=f"{context.label}", body=banner or text, group=f"cvoice-{context.session}", tty=context.tty)
         except Exception as error:  # noqa: BLE001
             health.record(context.paths, "notify", str(error))
         else:
@@ -158,10 +189,10 @@ def emit(
         (worker or spawn_worker)()
 
 
-def _default_notifier(title: str, body: str, group: str) -> None:
+def _default_notifier(title: str, body: str, group: str, tty: Optional[str] = None) -> None:
     from ..notify.macos import send
 
-    send(title=title, body=body, group=group)
+    send(title=title, body=body, group=group, tty=tty)
 
 
 def mark_heard(paths: Paths, history_id: str) -> None:
@@ -225,6 +256,9 @@ def make_speaker(paths: Paths, engines: List[object], sink: Optional[Callable[[s
 
 def detach(hook_name: str, payload: dict) -> None:
     """Re-enter this hook in a background process so the session is never held up."""
+    tty = session_tty()
+    if tty:
+        payload = {**payload, TTY_KEY: tty}
     handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
     json.dump(payload, handle)
     handle.close()
